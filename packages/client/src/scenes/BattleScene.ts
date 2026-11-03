@@ -97,6 +97,8 @@ export class BattleScene extends Phaser.Scene {
   private idleFrame = 0;
   private unsubscribe: (() => void) | null = null;
   private leaving = false;
+  /** Map node of the fight this scene was created for. */
+  private nodeId: string | null = null;
 
   constructor() {
     super({ key: SCENES.combat });
@@ -112,6 +114,7 @@ export class BattleScene extends Phaser.Scene {
     this.selectedSkill = null;
     this.leaving = false;
     this.darkTex = null;
+    this.nodeId = null;
     this.banner = null;
   }
 
@@ -121,6 +124,7 @@ export class BattleScene extends Phaser.Scene {
       goTo(this, SCENES.expedition);
       return;
     }
+    this.nodeId = view.currentNodeId;
     const node = view.nodes.find((n) => n.id === view.currentNodeId);
     const biome = node?.biome ?? "duskMines";
     const layers = backdropTexture(this, biome, node?.row ?? 1);
@@ -217,6 +221,13 @@ export class BattleScene extends Phaser.Scene {
   // -------------------------------------------------------------------------
 
   private applyView(view: RunView, instant: boolean): void {
+    // A new fight began before this one's animations finished (teammates moving fast):
+    // restart the scene so the backdrop, music and units match the new encounter.
+    if (view.phase === "combat" && this.nodeId && view.currentNodeId !== this.nodeId) {
+      this.pending = [];
+      this.scene.restart();
+      return;
+    }
     this.view = view;
     const combat = view.combat;
     if (!combat) {
@@ -393,7 +404,10 @@ export class BattleScene extends Phaser.Scene {
     const W = 320;
     const H = 180;
     if (!this.darkTex) {
-      this.darkTex = this.textures.createCanvas("battle.dark", W, H);
+      // The texture outlives the scene (textures are game-global), so reuse it across fights.
+      this.darkTex = this.textures.exists("battle.dark")
+        ? (this.textures.get("battle.dark") as Phaser.Textures.CanvasTexture)
+        : this.textures.createCanvas("battle.dark", W, H);
       this.darkImage.setTexture("battle.dark").setScale(SCALE).setVisible(true);
     }
     const tex = this.darkTex;
