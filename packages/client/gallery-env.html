@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Radiance – environment &amp; UI art gallery</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #0d0b14;
+        color: #c9bfae;
+        font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace;
+      }
+      h1 {
+        color: #f2a93b;
+        font-size: 18px;
+        margin: 0 0 16px;
+      }
+      h2 {
+        color: #ffd36e;
+        font-size: 14px;
+        margin: 28px 0 10px;
+        border-bottom: 1px solid #231f3d;
+        padding-bottom: 4px;
+      }
+      h3 {
+        color: #8399ba;
+        font-size: 12px;
+        margin: 14px 0 6px;
+      }
+      canvas {
+        image-rendering: pixelated;
+        display: block;
+      }
+      .grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .cell {
+        width: 92px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 2px;
+        background: #110e1b;
+        border: 1px solid #1b1729;
+      }
+      .cell span {
+        font-size: 10px;
+        color: #9c9183;
+        text-align: center;
+        word-break: break-all;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-end;
+      }
+      .sample {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-start;
+      }
+      .sample span {
+        font-size: 10px;
+        color: #6f665c;
+      }
+      .bd {
+        margin-bottom: 18px;
+      }
+      #timing {
+        color: #6fd28a;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Radiance — environment, icon &amp; UI art</h1>
+    <div id="timing"></div>
+    <section id="icons"></section>
+    <section id="ui"></section>
+    <section id="backdrops"></section>
+    <section id="map"></section>
+    <script type="module" src="/src/art/gallery-env.ts"></script>
+  </body>
+</html>

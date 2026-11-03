@@ -1,8 +1,9 @@
 import {
   type ClientMessage,
-  type CombatView,
-  type Command,
+  type MercSetup,
   PROTOCOL_VERSION,
+  type RunCommand,
+  type RunView,
   type ServerMessage,
 } from "@radiance/core";
 import { Emitter, type GameSession, type LobbyInfo, type SessionEvent } from "./session";
@@ -28,7 +29,7 @@ function saveRejoin(info: RejoinInfo | null): void {
     if (info) sessionStorage.setItem(STORAGE_KEY, JSON.stringify(info));
     else sessionStorage.removeItem(STORAGE_KEY);
   } catch {
-    // Storage can be unavailable (private mode); rejoin-on-refresh just won't work.
+    // Storage unavailable (private mode): rejoin-on-refresh just won't work.
   }
 }
 
@@ -40,8 +41,8 @@ export function defaultServerUrl(): string {
 }
 
 export type OnlineIntent =
-  | { kind: "create"; name: string; classId: string }
-  | { kind: "join"; code: string; name: string; classId: string }
+  | { kind: "create"; name: string }
+  | { kind: "join"; code: string; name: string }
   | { kind: "rejoin" };
 
 export function hasRejoin(): boolean {
@@ -52,8 +53,8 @@ export function hasRejoin(): boolean {
 export class OnlineSession implements GameSession {
   readonly mode = "online";
   playerId = "";
-  currentView: CombatView | null = null;
-  private lobby: LobbyInfo | null = null;
+  currentView: RunView | null = null;
+  lobby: LobbyInfo | null = null;
   private readonly emitter = new Emitter<SessionEvent>();
   private socket: WebSocket | null = null;
   private rejoin: RejoinInfo | null = null;
@@ -62,7 +63,7 @@ export class OnlineSession implements GameSession {
 
   constructor(
     private readonly url: string,
-    private intent: OnlineIntent,
+    private readonly intent: OnlineIntent,
   ) {
     if (intent.kind === "rejoin") this.rejoin = loadRejoin();
     this.connect();
@@ -76,16 +77,16 @@ export class OnlineSession implements GameSession {
     return this.emitter.on(listener);
   }
 
-  command(command: Command): void {
+  command(command: RunCommand): void {
     this.send({ t: "command", command });
+  }
+
+  submitSquad(mercs: MercSetup[]): void {
+    this.send({ t: "submitSquad", mercs });
   }
 
   startGame(): void {
     this.send({ t: "startGame" });
-  }
-
-  setClass(classId: string): void {
-    this.send({ t: "setClass", classId });
   }
 
   close(): void {
@@ -101,14 +102,12 @@ export class OnlineSession implements GameSession {
 
     socket.addEventListener("open", () => {
       this.retries = 0;
+      this.emitter.emit({ type: "status", text: "" });
       const v = PROTOCOL_VERSION;
-      if (this.rejoin) {
-        this.send({ t: "rejoin", v, ...this.rejoin });
-      } else if (this.intent.kind === "create") {
-        this.send({ t: "createRoom", v, name: this.intent.name, classId: this.intent.classId });
-      } else if (this.intent.kind === "join") {
-        const { code, name, classId } = this.intent;
-        this.send({ t: "joinRoom", v, code, name, classId });
+      if (this.rejoin) this.send({ t: "rejoin", v, ...this.rejoin });
+      else if (this.intent.kind === "create") this.send({ t: "createRoom", v, name: this.intent.name });
+      else if (this.intent.kind === "join") {
+        this.send({ t: "joinRoom", v, code: this.intent.code, name: this.intent.name });
       }
     });
 
@@ -142,16 +141,12 @@ export class OnlineSession implements GameSession {
         saveRejoin(this.rejoin);
         break;
       case "lobby":
-        this.lobby = {
-          code: msg.code,
-          hostId: msg.hostId,
-          players: msg.players,
-          started: msg.started,
-        };
+        this.lobby = { code: msg.code, hostId: msg.hostId, players: msg.players, started: msg.started };
         this.emitter.emit({ type: "lobby", lobby: this.lobby });
         break;
       case "state":
         this.currentView = msg.view;
+        if (msg.view.phase === "victory" || msg.view.phase === "defeat") saveRejoin(null);
         this.emitter.emit({ type: "state", view: msg.view, events: msg.events });
         break;
       case "error":

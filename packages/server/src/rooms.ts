@@ -1,14 +1,15 @@
 import {
-  applyCommand,
+  applyRunCommand,
   type ClientMessage,
-  type CombatEvent,
-  type CombatState,
-  createCombat,
-  ENCOUNTERS,
+  createRun,
   type LobbyPlayer,
   type LoggedCommand,
-  MAX_PLAYERS,
+  type MercSetup,
+  type RunEvent,
+  type RunState,
   type ServerMessage,
+  SQUAD_SIZE,
+  slotsForPlayers,
   viewFor,
 } from "@radiance/core";
 
@@ -27,17 +28,17 @@ export interface Connection {
 interface Member {
   id: string;
   name: string;
-  classId: string;
   token: string;
   conn: Connection | null;
+  squad: MercSetup[] | null;
 }
 
 interface Room {
   code: string;
   hostId: string;
   members: Member[];
-  combat: CombatState | null;
-  /** Seed + log fully reproduces the combat (save files, desync reports). */
+  run: RunState | null;
+  /** Seed + setups + log fully reproduce the run (saves, desync reports). */
   log: LoggedCommand[];
   nextPlayerNum: number;
   emptySince: number | null;
@@ -47,12 +48,11 @@ export interface RoomDeps {
   makeCode(): string;
   makeToken(): string;
   makeSeed(): string;
-  /** Picks which encounter to start next. Replaced by the run/map system in M2. */
-  pickEncounter(seed: string): string;
   now(): number;
 }
 
-export const ROOM_IDLE_TTL_MS = 10 * 60 * 1000;
+export const ROOM_IDLE_TTL_MS = 15 * 60 * 1000;
+export const MAX_PLAYERS = SQUAD_SIZE;
 
 export class RoomManager {
   private readonly rooms = new Map<string, Room>();
@@ -66,56 +66,38 @@ export class RoomManager {
   handle(conn: Connection, msg: ClientMessage): void {
     switch (msg.t) {
       case "createRoom": {
-        if (conn.roomCode) {
-          this.fail(conn, "Already in a room.");
-          return;
-        }
+        if (conn.roomCode) return this.fail(conn, "Already in a room.");
         let code = this.deps.makeCode();
         while (this.rooms.has(code)) code = this.deps.makeCode();
         const room: Room = {
           code,
           hostId: "",
           members: [],
-          combat: null,
+          run: null,
           log: [],
           nextPlayerNum: 1,
           emptySince: null,
         };
         this.rooms.set(code, room);
-        const member = this.addMember(room, conn, msg.name, msg.classId);
-        room.hostId = member.id;
+        room.hostId = this.addMember(room, conn, msg.name).id;
         this.broadcastLobby(room);
         return;
       }
       case "joinRoom": {
-        if (conn.roomCode) {
-          this.fail(conn, "Already in a room.");
-          return;
-        }
+        if (conn.roomCode) return this.fail(conn, "Already in a room.");
         const room = this.rooms.get(msg.code);
-        if (!room) {
-          this.fail(conn, "Room not found.");
-          return;
-        }
-        if (room.combat) {
-          this.fail(conn, "That game has already started.");
-          return;
-        }
-        if (room.members.length >= MAX_PLAYERS) {
-          this.fail(conn, "Room is full.");
-          return;
-        }
-        this.addMember(room, conn, msg.name, msg.classId);
+        if (!room) return this.fail(conn, "Room not found.");
+        if (room.run) return this.fail(conn, "That expedition has already left.");
+        if (room.members.length >= MAX_PLAYERS) return this.fail(conn, "Room is full.");
+        this.addMember(room, conn, msg.name);
+        this.resetMismatchedSquads(room);
         this.broadcastLobby(room);
         return;
       }
       case "rejoin": {
         const room = this.rooms.get(msg.code);
         const member = room?.members.find((m) => m.token === msg.token);
-        if (!room || !member) {
-          this.fail(conn, "Could not rejoin that room.");
-          return;
-        }
+        if (!room || !member) return this.fail(conn, "Could not rejoin that room.");
         if (member.conn && member.conn !== conn) {
           member.conn.peer.send({ t: "error", message: "Signed in from another tab." });
           member.conn.roomCode = undefined;
@@ -127,42 +109,32 @@ export class RoomManager {
         room.emptySince = null;
         conn.peer.send({ t: "welcome", code: room.code, playerId: member.id, token: member.token });
         this.broadcastLobby(room);
-        if (room.combat) this.sendState(room, member, []);
+        if (room.run) this.sendState(room, member, []);
         return;
       }
-      case "setClass": {
+      case "submitSquad": {
         const { room, member } = this.context(conn);
-        if (!room || !member) {
-          this.fail(conn, "Not in a room.");
-          return;
-        }
-        if (room.combat) {
-          this.fail(conn, "Can't change class mid-game.");
-          return;
-        }
-        member.classId = msg.classId;
+        if (!room || !member) return this.fail(conn, "Not in a room.");
+        if (room.run) return this.fail(conn, "The expedition has already left.");
+        const slots = this.slotsOf(room, member);
+        if (msg.mercs.length !== slots) return this.fail(conn, `Create exactly ${slots} mercenaries.`);
+        member.squad = msg.mercs as MercSetup[];
         this.broadcastLobby(room);
         return;
       }
       case "startGame": {
         const { room, member } = this.context(conn);
-        if (!room || !member) {
-          this.fail(conn, "Not in a room.");
-          return;
+        if (!room || !member) return this.fail(conn, "Not in a room.");
+        if (member.id !== room.hostId) return this.fail(conn, "Only the host can start.");
+        if (room.run) return this.fail(conn, "Already started.");
+        const notReady = room.members.filter((m) => m.squad?.length !== this.slotsOf(room, m));
+        if (notReady.length) {
+          return this.fail(conn, `Waiting for ${notReady.map((m) => m.name).join(", ")}.`);
         }
-        if (member.id !== room.hostId) {
-          this.fail(conn, "Only the host can start.");
-          return;
-        }
-        if (room.combat && room.combat.phase === "player") {
-          this.fail(conn, "A combat is in progress.");
-          return;
-        }
-        const seed = this.deps.makeSeed();
-        room.combat = createCombat({
-          seed,
-          encounterId: this.deps.pickEncounter(seed),
-          players: room.members.map(({ id, name, classId }) => ({ id, name, classId })),
+        room.run = createRun({
+          seed: this.deps.makeSeed(),
+          players: room.members.map(({ id, name }) => ({ id, name })),
+          mercs: room.members.flatMap((m) => (m.squad ?? []).map((setup) => ({ ownerId: m.id, setup }))),
         });
         room.log = [];
         this.broadcastLobby(room);
@@ -171,23 +143,17 @@ export class RoomManager {
       }
       case "command": {
         const { room, member } = this.context(conn);
-        if (!room?.combat || !member) {
-          this.fail(conn, "No game in progress.");
-          return;
-        }
-        const result = applyCommand(room.combat, member.id, msg.command);
-        if (!result.ok) {
-          this.fail(conn, result.error);
-          return;
-        }
-        room.combat = result.state;
+        if (!room?.run || !member) return this.fail(conn, "No expedition in progress.");
+        const result = applyRunCommand(room.run, member.id, msg.command);
+        if (!result.ok) return this.fail(conn, result.error);
+        room.run = result.state;
         room.log.push({ playerId: member.id, command: msg.command });
         for (const m of room.members) this.sendState(room, m, result.events);
         return;
       }
       default: {
-        const exhaustive: never = msg;
-        this.fail(conn, `Unhandled message ${JSON.stringify(exhaustive)}`);
+        const never: never = msg;
+        this.fail(conn, `Unhandled message ${JSON.stringify(never)}`);
       }
     }
   }
@@ -196,8 +162,15 @@ export class RoomManager {
     const { room, member } = this.context(conn);
     if (!room || !member || member.conn !== conn) return;
     member.conn = null;
+    if (!room.run) {
+      // Before departure, leaving frees the seat.
+      room.members = room.members.filter((m) => m !== member);
+      if (room.hostId === member.id && room.members[0]) room.hostId = room.members[0].id;
+      this.resetMismatchedSquads(room);
+    }
     if (room.members.every((m) => m.conn === null)) room.emptySince = this.deps.now();
-    this.broadcastLobby(room);
+    if (room.members.length === 0) this.rooms.delete(room.code);
+    else this.broadcastLobby(room);
   }
 
   /** Remove rooms that have had nobody connected for longer than the TTL. */
@@ -212,13 +185,24 @@ export class RoomManager {
     return removed;
   }
 
-  private addMember(room: Room, conn: Connection, name: string, classId: string): Member {
+  private slotsOf(room: Room, member: Member): number {
+    const slots = slotsForPlayers(room.members.length);
+    return slots[room.members.indexOf(member)] ?? 0;
+  }
+
+  private resetMismatchedSquads(room: Room): void {
+    for (const m of room.members) {
+      if (m.squad && m.squad.length !== this.slotsOf(room, m)) m.squad = null;
+    }
+  }
+
+  private addMember(room: Room, conn: Connection, name: string): Member {
     const member: Member = {
       id: `p${room.nextPlayerNum++}`,
       name,
-      classId,
       token: this.deps.makeToken(),
       conn,
+      squad: null,
     };
     room.members.push(member);
     room.emptySince = null;
@@ -238,32 +222,26 @@ export class RoomManager {
     const players: LobbyPlayer[] = room.members.map((m) => ({
       id: m.id,
       name: m.name,
-      classId: m.classId,
       connected: m.conn !== null,
+      slots: this.slotsOf(room, m),
+      ready: m.squad?.length === this.slotsOf(room, m),
     }));
     const msg: ServerMessage = {
       t: "lobby",
       code: room.code,
       hostId: room.hostId,
       players,
-      started: room.combat !== null,
+      started: room.run !== null,
     };
     for (const m of room.members) m.conn?.peer.send(msg);
   }
 
-  private sendState(room: Room, member: Member, events: CombatEvent[]): void {
-    if (!room.combat || !member.conn) return;
-    member.conn.peer.send({ t: "state", view: viewFor(room.combat, member.id), events });
+  private sendState(room: Room, member: Member, events: RunEvent[]): void {
+    if (!room.run || !member.conn) return;
+    member.conn.peer.send({ t: "state", view: viewFor(room.run, member.id), events });
   }
 
   private fail(conn: Connection, message: string): void {
     conn.peer.send({ t: "error", message });
   }
-}
-
-export function defaultPickEncounter(seed: string): string {
-  const ids = Object.keys(ENCOUNTERS);
-  let h = 0;
-  for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return ids[h % ids.length] as string;
 }

@@ -1,10 +1,12 @@
 # Radiance
 
-A roguelike deckbuilder for **1–4 players with online co-op**. Carry the last light down into the
-dark, together.
+A **co-op tactical RPG roguelite for 1–4 players**. Lead a squad of four mercenaries onto dark,
+sunless moons to scavenge old-world relics and rare minerals. Combat is ranked, turn-based and
+ability-driven: skills with cooldowns, passives, loot with affixes, and deep character builds. In
+the dark, **light is everything**.
 
-> Status: **M0 — Foundation**. Playable combat prototype, solo or online co-op, with programmer
-> art. See the [roadmap](docs/ROADMAP.md).
+> Status: **M1, playable prototype.** Solo and online co-op, procedural pixel art, synthesized audio.
+> See the [roadmap](docs/ROADMAP.md).
 
 ## Documents
 
@@ -31,16 +33,19 @@ pnpm dev
 `pnpm dev` starts the co-op server on `ws://localhost:8787` and the client on
 `http://localhost:5173`.
 
-- **Solo:** open the client and choose _Play solo_ or _Solo + bot ally_. This runs fully in the
-  browser with no server.
+- **Solo:** open the client and choose _New Expedition (Solo)_. This runs fully in the browser with
+  no server. Solo runs auto-save and can be resumed from the title screen.
 - **Co-op on one machine:** open two browser windows. Choose _Create online room_ in one, then
   enter the code and click _Join_ in the other.
 - **Co-op over LAN:** friends open `http://<your-ip>:5173`. The client connects to
   `ws://<your-ip>:8787` automatically. To point it elsewhere, set `VITE_SERVER_URL` (see
   `packages/client/.env.example`).
 
-Controls: click a card, then click a target. **E** ends the turn (press again to undo). **Esc**
-cancels.
+Controls: click a skill (or press 1–6), then click a highlighted target. **Esc** cancels or opens
+the menu. **C** opens the character sheet on the expedition map.
+
+Dev pages (with `pnpm dev`): `/gallery-characters.html`, `/gallery-env.html`, `/squad-lab.html`,
+`/character-lab.html`, `/audio-lab.html`.
 
 ## Scripts
 
@@ -59,6 +64,6 @@ cancels.
 ```
 packages/core     Pure deterministic rules engine (shared by client, server, tests, simulator)
 packages/server   Authoritative WebSocket room server
-packages/client   Phaser 4 + Vite game client (offline and online)
+packages/client   Phaser 4 + Vite client: scenes, procedural pixel art, synthesized audio
 docs/             Design, architecture, roadmap, decision records
 ```

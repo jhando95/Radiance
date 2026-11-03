@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Radiance — Squad Lab</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #07060b;
+        overflow: hidden;
+      }
+      #game {
+        position: fixed;
+        inset: 0;
+      }
+      #out {
+        position: fixed;
+        left: 8px;
+        bottom: 8px;
+        max-width: 60vw;
+        max-height: 40vh;
+        overflow: auto;
+        margin: 0;
+        padding: 8px 12px;
+        background: rgba(5, 4, 10, 0.92);
+        border: 2px solid #f2a93b;
+        color: #ece4d4;
+        font: 12px/1.4 "Pixelify Sans", monospace;
+        white-space: pre;
+        z-index: 10;
+      }
+      #out[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <pre id="out" hidden></pre>
+    <script type="module" src="/src/squad-lab.ts"></script>
+  </body>
+</html>

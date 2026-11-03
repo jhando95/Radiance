@@ -29,5 +29,5 @@ jobs:
         run: pnpm test
       - name: Build
         run: pnpm build
-      - name: Balance smoke test (bots must finish every combat)
+      - name: Expedition smoke test (bots play full runs; must never stall or send invalid commands)
         run: pnpm sim -- --runs 50

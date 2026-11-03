@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Radiance – Character Lab</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #07060b;
+        overflow: hidden;
+      }
+      #game {
+        width: 100vw;
+        height: 100vh;
+      }
+      #lab-bar {
+        position: fixed;
+        left: 8px;
+        bottom: 6px;
+        color: #6f665c;
+        font: 11px ui-monospace, Menlo, Consolas, monospace;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <div id="lab-bar">
+      character-lab · ?merc=m1..m4 · ?phase=map|reward|combat · ?stash=0..60 · ?seed=… · C toggles
+    </div>
+    <script type="module" src="/src/character-lab.ts"></script>
+  </body>
+</html>

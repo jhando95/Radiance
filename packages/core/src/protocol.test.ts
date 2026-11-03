@@ -1,36 +1,42 @@
 import { describe, expect, it } from "vitest";
 import { PROTOCOL_VERSION, parseClientMessage } from "./protocol";
+import { CLASS_PRESETS } from "./sim/presets";
 
 describe("parseClientMessage", () => {
-  it("accepts a valid createRoom", () => {
-    const r = parseClientMessage(
-      JSON.stringify({ t: "createRoom", v: PROTOCOL_VERSION, name: "Ada", classId: "warden" }),
-    );
-    expect(r.ok).toBe(true);
-  });
-
-  it("normalizes room codes", () => {
-    const r = parseClientMessage({
-      t: "joinRoom",
-      v: PROTOCOL_VERSION,
-      code: " abcd ",
-      name: "Bo",
-      classId: "seeker",
-    });
-    expect(r.ok && r.value.t === "joinRoom" && r.value.code).toBe("ABCD");
+  it("accepts valid messages", () => {
+    expect(parseClientMessage({ t: "createRoom", v: PROTOCOL_VERSION, name: "Ada" }).ok).toBe(true);
+    expect(parseClientMessage({ t: "submitSquad", mercs: [CLASS_PRESETS.vanguard] }).ok).toBe(true);
+    expect(
+      parseClientMessage({
+        t: "command",
+        command: { type: "useSkill", unitId: "m1", skillId: "rend", targetId: "e1" },
+      }).ok,
+    ).toBe(true);
   });
 
   it.each([
-    ["not json", "{nope"],
-    ["unknown type", { t: "hack" }],
-    ["bad class", { t: "createRoom", v: PROTOCOL_VERSION, name: "A", classId: "god" }],
+    ["junk", "{nope"],
+    ["unknown", { t: "hack" }],
     [
-      "long name",
-      { t: "createRoom", v: PROTOCOL_VERSION, name: "x".repeat(99), classId: "warden" },
+      "bad discipline",
+      { t: "submitSquad", mercs: [{ ...CLASS_PRESETS.vanguard, discipline: "god" }] },
     ],
-    ["wrong version", { t: "createRoom", v: 999, name: "A", classId: "warden" }],
-    ["bad command", { t: "command", command: { type: "playCard", cardUid: -1 } }],
-  ])("rejects %s", (_label, msg) => {
+    [
+      "appearance out of range",
+      {
+        t: "submitSquad",
+        mercs: [
+          {
+            ...CLASS_PRESETS.vanguard,
+            appearance: { ...CLASS_PRESETS.vanguard?.appearance, skin: 99 },
+          },
+        ],
+      },
+    ],
+    ["too many mercs", { t: "submitSquad", mercs: Array(5).fill(CLASS_PRESETS.vanguard) }],
+    ["old protocol", { t: "createRoom", v: 1, name: "A" }],
+    ["bad command", { t: "command", command: { type: "setSkills", mercId: "m1", skills: ["a"] } }],
+  ])("rejects %s", (_l, msg) => {
     expect(parseClientMessage(msg).ok).toBe(false);
   });
 });

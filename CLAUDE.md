@@ -1,6 +1,7 @@
 # CLAUDE.md — working on Radiance
 
-Radiance is a co-op (1–4 players) roguelike deckbuilder. It's a TypeScript monorepo:
+Radiance is a co-op (1–4 players) tactical RPG roguelite: ranked, ability-based combat (Darkest
+Dungeon-style) with deep builds and a light/darkness system. It's a TypeScript monorepo:
 `packages/core` (rules), `packages/server` (authoritative ws rooms), `packages/client` (Phaser 4 + Vite).
 Read `docs/ARCHITECTURE.md` before structural changes and `docs/GAME_DESIGN.md` before content changes.
 
@@ -14,30 +15,32 @@ Read `docs/ARCHITECTURE.md` before structural changes and `docs/GAME_DESIGN.md` 
 
 ## Hard rules
 
-1. **Game rules live only in `packages/core`.** The client renders `CombatView`s and sends
-   `Command`s through `GameSession`. The server validates and relays. Never duplicate a rule in
+1. **Game rules live only in `packages/core`.** The client renders `RunView`s and sends
+   `RunCommand`s through `GameSession`. The server validates and relays. Never duplicate a rule in
    client or server code.
 2. **Core is pure and deterministic.** It has no DOM, Node APIs, I/O, `Math.random()`, `Date`, or
    timers. Randomness comes only from `stream(state, "<name>")`. Add a new named stream rather than
    reusing one for an unrelated purpose.
 3. **State is plain JSON.** It has no classes, Maps, Sets, functions or `undefined`-dependent
-   logic. `applyCommand` must not mutate its input.
-4. **Content is data.** Cards and enemies are built from effect kinds. For new behavior, add an
-   effect kind in `combat/effects.ts` (plus `describeEffect` text and tests). Don't special-case
-   card ids.
-5. **Never send raw `CombatState` to a client.** Always use `viewFor`. RNG state and draw order
-   are secret.
+   logic. `applyRunCommand` must not mutate its input.
+4. **Content is data.** Skills, perks, items and enemies are built from effect kinds, mods and
+   triggers. For new behavior, add an effect kind in `combat/skills.ts` (plus `describeEffect`
+   text in `describe.ts` and tests). Don't special-case skill ids.
+5. **Never send raw `RunState` to a client.** Always use `viewFor`. RNG state and unlit enemies'
+   HP are secret.
 6. **Validate every client message** with the zod schemas in `core/src/protocol.ts`. Bump
    `PROTOCOL_VERSION` on breaking wire changes.
 7. **Untrusted strings** (player names) go into the DOM only as text nodes (`ui/dom.ts` `el()`),
    never `innerHTML`.
-8. Keep the game original. The genre conventions are fine, but don't copy names, cards, enemies,
+8. **Art is procedural.** Draw sprites in `client/src/art/` using palette ramps only. Mercs must
+   support every appearance option count in `APPEARANCE_OPTIONS`.
+9. Keep the game original. The genre conventions are fine, but don't copy names, cards, enemies,
    art or text from other games.
 
 ## Testing expectations
 
 - Every new effect, status or rule gets a unit test in `packages/core`.
-- The determinism tests (`replay` equality, reproducible bot games) must keep passing.
+- The determinism tests (`replayRun` equality on a full bot expedition) must keep passing.
 - Server behavior is tested through `RoomManager` with fake peers (`rooms.test.ts`).
 - If you change balance numbers, include before/after `pnpm sim` output in the PR description.
 

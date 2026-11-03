@@ -1,93 +1,59 @@
+/**
+ * Client entry: loads the pixel font and base styles, creates the Phaser game and registers
+ * the shell scenes plus every gameplay scene pushed into `gameplayScenes`.
+ */
+import "@fontsource/pixelify-sans/400.css";
+import "@fontsource/pixelify-sans/600.css";
+import "@fontsource/pixelify-sans/700.css";
+import "./ui/style.css";
 import * as Phaser from "phaser";
-import { OfflineSession } from "./net/offline";
-import { defaultServerUrl, hasRejoin, OnlineSession } from "./net/online";
-import type { GameSession } from "./net/session";
-import { CombatScene, HEIGHT, WIDTH } from "./scenes/CombatScene";
-import { type MenuHandlers, renderHome, renderLobby } from "./ui/menu";
-import { toast } from "./ui/toast";
+import { registerGameplayScenes, SCENES } from "./app/scenes";
+import { getSettings, onSettingsChange } from "./app/settings";
+import { BootScene } from "./scenes/BootScene";
+import { CreditsScene } from "./scenes/CreditsScene";
+import { DebugScene } from "./scenes/DebugScene";
+import { HowToPlayScene } from "./scenes/HowToPlayScene";
+import { PauseOverlay } from "./scenes/PauseOverlay";
+import { SettingsScene } from "./scenes/SettingsScene";
+import { TitleScene } from "./scenes/TitleScene";
+import { UiOverlayScene } from "./scenes/UiOverlayScene";
+import "./scenes/gameplay";
+import { COLORS, GAME_H, GAME_W, installLigatureFix } from "./ui/theme";
 
-const menu = document.getElementById("menu") as HTMLElement;
-let game: Phaser.Game | null = null;
-let session: GameSession | null = null;
+// Before any scene creates text: suppress Pixelify Sans fi/fl/ff ligatures everywhere.
+installLigatureFix(Phaser.GameObjects.Text);
 
-function showMenu(): void {
-  menu.hidden = false;
-}
+const game = new Phaser.Game({
+  type: Phaser.AUTO,
+  width: GAME_W,
+  height: GAME_H,
+  parent: "game",
+  backgroundColor: COLORS.bg,
+  pixelArt: true,
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+  dom: { createContainer: true },
+  input: { activePointers: 2 },
+  disableContextMenu: true,
+  scene: [
+    BootScene,
+    TitleScene,
+    SettingsScene,
+    HowToPlayScene,
+    CreditsScene,
+    ...(import.meta.env.DEV ? [DebugScene] : []),
+  ],
+});
 
-function hideMenu(): void {
-  menu.hidden = true;
-}
+registerGameplayScenes(game);
+// Overlays last so they render above gameplay scenes by default.
+game.scene.add(SCENES.pause, PauseOverlay, false);
+game.scene.add(SCENES.uiOverlay, UiOverlayScene, false);
 
-function ensureGame(s: GameSession): void {
-  if (game) {
-    game.scene.start("combat", { session: s });
-    return;
-  }
-  game = new Phaser.Game({
-    type: Phaser.AUTO,
-    width: WIDTH,
-    height: HEIGHT,
-    parent: "game",
-    backgroundColor: "#0d0b14",
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: [],
-  });
-  game.scene.add("combat", CombatScene, true, { session: s });
-}
-
-function leave(): void {
-  session?.close();
-  session = null;
-  game?.scene.stop("combat");
-  goHome();
-}
-
-function begin(s: GameSession): void {
-  session = s;
-  let inCombat = false;
-  s.subscribe((e) => {
-    if (e.type === "error") toast(e.message);
-    if (e.type === "lobby" && !inCombat) {
-      renderLobby(menu, e.lobby, s.playerId, {
-        start: () => s.startGame(),
-        leave,
-        setClass: (c) => s.setClass(c),
-      });
-      showMenu();
-    }
-    if (e.type === "error" && !inCombat && s.mode === "online" && !s.playerId) goHome();
-  });
-  // Subscribe before the first state arrives so the scene receives it.
-  s.subscribe((e) => {
-    if (e.type === "state" && !inCombat) {
-      inCombat = true;
-      hideMenu();
-      // The scene reads session.currentView on boot, so no state is lost.
-      ensureGame(s);
-    }
-  });
-}
-
-const handlers: MenuHandlers = {
-  offline(choice, botClasses) {
-    const s = new OfflineSession({ ...choice, botClasses });
-    begin(s);
-    s.startGame();
-  },
-  create(choice) {
-    begin(new OnlineSession(defaultServerUrl(), { kind: "create", ...choice }));
-  },
-  join(choice, code) {
-    begin(new OnlineSession(defaultServerUrl(), { kind: "join", code, ...choice }));
-  },
-  rejoin() {
-    begin(new OnlineSession(defaultServerUrl(), { kind: "rejoin" }));
-  },
+// Phaser's own sound manager follows the master volume (the audio module may layer on top).
+const applyVolume = () => {
+  game.sound.volume = getSettings().masterVolume;
 };
+game.events.once(Phaser.Core.Events.READY, applyVolume);
+onSettingsChange(applyVolume);
 
-function goHome(): void {
-  renderHome(menu, handlers, hasRejoin());
-  showMenu();
-}
-
-goHome();
+if (import.meta.env.DEV) (window as unknown as { __game?: Phaser.Game }).__game = game;

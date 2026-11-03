@@ -1,4 +1,4 @@
-# ADR 0002 — Networking: authoritative server, state snapshots, simultaneous turns
+# ADR 0002 — Networking: authoritative server, state snapshots, owned units
 
 - **Status:** Accepted (2026-11-03)
 
@@ -24,9 +24,11 @@ want rejoining to be painless.
    `@radiance/core`'s `applyCommand`.
 2. **Full redacted snapshots** (`viewFor`) plus an event list after each accepted command. The
    state carries a `version` counter for future delta or ack schemes.
-3. **Simultaneous turns.** Any living player can act during the player phase. The server's
-   arrival order is the canonical order. Enemies act when all living players are ready, and ready
-   can be undone until then.
+3. **Initiative turns with unit ownership** (revised 2026-11-03 for ranked ability combat). Every
+   merc is owned by one player. The engine pauses whenever a merc must act and accepts `useSkill`
+   only from its owner. Enemy turns resolve on the server as part of the previous command, so
+   there is no idle network chatter. Route choices use votes, and rewards use everyone pressing
+   Continue.
 4. **Command log + seed** is kept per room. It is the replay and save format, and the basis for
    server-restart recovery.
 5. **The server validates everything:** a zod schema at the boundary, then rule validation in

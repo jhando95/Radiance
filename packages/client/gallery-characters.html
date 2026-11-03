@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Radiance – Character Gallery</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px 24px 48px;
+        background: #0d0b14;
+        color: #c9bfae;
+        font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
+      }
+      h1 {
+        color: #ffd36e;
+        font-size: 18px;
+        margin: 4px 0 12px;
+      }
+      h2 {
+        color: #f2a93b;
+        font-size: 14px;
+        margin: 24px 0 8px;
+        border-bottom: 1px solid #231f3d;
+        padding-bottom: 4px;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: flex-end;
+        margin-bottom: 8px;
+      }
+      .cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+      }
+      .cell canvas {
+        image-rendering: pixelated;
+        background: #0d0b14;
+        outline: 1px solid #17142a;
+      }
+      .cell span {
+        color: #9c9183;
+        font-size: 10px;
+        max-width: 200px;
+        text-align: center;
+      }
+      .rowlabel {
+        width: 96px;
+        color: #8399ba;
+        align-self: center;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Radiance — characters (4x)</h1>
+    <div id="root"></div>
+    <script type="module" src="/src/art/gallery-characters.ts"></script>
+  </body>
+</html>

@@ -2,10 +2,10 @@ import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import { parseClientMessage, type ServerMessage } from "@radiance/core";
 import { WebSocket, WebSocketServer } from "ws";
-import { type Connection, defaultPickEncounter, RoomManager } from "./rooms";
+import { type Connection, RoomManager } from "./rooms";
 
 const PORT = Number(process.env.PORT ?? 8787);
-const MAX_MESSAGE_BYTES = 8 * 1024;
+const MAX_MESSAGE_BYTES = 16 * 1024;
 const MAX_MESSAGES_PER_SECOND = 20;
 const HEARTBEAT_MS = 15_000;
 // Unambiguous characters only (no 0/O, 1/I/L) so codes are easy to read aloud.
@@ -16,7 +16,6 @@ const rooms = new RoomManager({
     Array.from({ length: 5 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join(""),
   makeToken: () => randomUUID(),
   makeSeed: () => randomBytes(8).toString("hex"),
-  pickEncounter: defaultPickEncounter,
   now: () => Date.now(),
 });
 

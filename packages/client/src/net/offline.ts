@@ -1,102 +1,138 @@
 import {
-  applyCommand,
-  botCommand,
-  type CombatEvent,
-  type CombatState,
-  type CombatView,
-  type Command,
-  createCombat,
-  ENCOUNTERS,
-  type RngState,
-  seedRng,
+  applyRunCommand,
+  createRun,
+  type MercSetup,
+  type RunCommand,
+  type RunEvent,
+  type RunState,
+  type RunView,
   viewFor,
 } from "@radiance/core";
-import { Emitter, type GameSession, type SessionEvent } from "./session";
+import { Emitter, type GameSession, type LobbyInfo, type SessionEvent } from "./session";
 
-export interface OfflineOptions {
+const SAVE_KEY = "radiance:offline-run";
+
+interface SaveFile {
+  seed: string;
   name: string;
-  classId: string;
-  /** Classes for AI allies — lets you exercise co-op rules without a second human. */
-  botClasses: string[];
+  squad: MercSetup[];
+  log: { playerId: string; command: RunCommand }[];
 }
 
-/** Runs @radiance/core directly in the browser. Same rules as the server, no network. */
+function load(): SaveFile | null {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? (JSON.parse(raw) as SaveFile) : null;
+  } catch {
+    return null;
+  }
+}
+
+function save(file: SaveFile | null): void {
+  try {
+    if (file) localStorage.setItem(SAVE_KEY, JSON.stringify(file));
+    else localStorage.removeItem(SAVE_KEY);
+  } catch {
+    // Storage unavailable: the run just won't survive a reload.
+  }
+}
+
+export function hasOfflineSave(): boolean {
+  const f = load();
+  return !!f && f.log.length > 0;
+}
+
+/** Solo play: runs @radiance/core in the browser. Saves as seed + command log. */
 export class OfflineSession implements GameSession {
   readonly mode = "offline";
   readonly playerId = "p1";
   readonly isHost = true;
+  readonly lobby: LobbyInfo | null = null;
+  currentView: RunView | null = null;
   private readonly emitter = new Emitter<SessionEvent>();
-  private state: CombatState | null = null;
-  private readonly botIds: string[];
-  private readonly botRng: RngState;
-  private fights = 0;
-  currentView: CombatView | null = null;
+  private run: RunState | null = null;
+  private squad: MercSetup[] = [];
+  private file: SaveFile | null = null;
 
-  constructor(private readonly opts: OfflineOptions) {
-    this.botIds = opts.botClasses.map((_, i) => `p${i + 2}`);
-    this.botRng = seedRng(`offline-bots-${Date.now()}`);
+  constructor(private readonly name: string) {}
+
+  /** Resume the saved expedition, if any. Returns false if there is none. */
+  resume(): boolean {
+    const file = load();
+    if (!file) return false;
+    try {
+      let run = createRun(this.options(file.seed, file.squad));
+      for (const entry of file.log) {
+        const res = applyRunCommand(run, entry.playerId, entry.command);
+        if (!res.ok) throw new Error(res.error);
+        run = res.state;
+      }
+      this.file = file;
+      this.squad = file.squad;
+      this.run = run;
+      this.publish([]);
+      return true;
+    } catch {
+      save(null);
+      return false;
+    }
   }
 
   subscribe(listener: (event: SessionEvent) => void): () => void {
     return this.emitter.on(listener);
   }
 
-  setClass(classId: string): void {
-    this.opts.classId = classId;
+  submitSquad(mercs: MercSetup[]): void {
+    this.squad = mercs;
   }
 
   startGame(): void {
-    const encounterIds = Object.keys(ENCOUNTERS);
-    const seed = `offline-${Date.now()}`;
-    this.state = createCombat({
-      seed,
-      encounterId: encounterIds[this.fights++ % encounterIds.length] as string,
-      players: [
-        { id: this.playerId, name: this.opts.name, classId: this.opts.classId },
-        ...this.opts.botClasses.map((classId, i) => ({
-          id: this.botIds[i] as string,
-          name: `Ally ${i + 1}`,
-          classId,
-        })),
-      ],
-    });
+    if (this.squad.length !== 4) {
+      this.emitter.emit({ type: "error", message: "Assemble four mercenaries first." });
+      return;
+    }
+    const seed = `solo-${Date.now().toString(36)}`;
+    this.run = createRun(this.options(seed, this.squad));
+    this.file = { seed, name: this.name, squad: this.squad, log: [] };
+    save(this.file);
     this.publish([]);
-    this.runBots();
   }
 
-  command(cmd: Command): void {
-    if (!this.state) return;
-    const result = applyCommand(this.state, this.playerId, cmd);
+  command(cmd: RunCommand): void {
+    if (!this.run) return;
+    const result = applyRunCommand(this.run, this.playerId, cmd);
     if (!result.ok) {
       this.emitter.emit({ type: "error", message: result.error });
       return;
     }
-    this.state = result.state;
+    this.run = result.state;
+    if (this.file) {
+      this.file.log.push({ playerId: this.playerId, command: cmd });
+      save(this.run.phase === "victory" || this.run.phase === "defeat" ? null : this.file);
+    }
     this.publish(result.events);
-    this.runBots();
   }
 
   close(): void {}
 
-  /** Bots take their whole turn right away (with a small delay so it's watchable). */
-  private runBots(): void {
-    const state = this.state;
-    if (state?.phase !== "player") return;
-    const bot = state.players.find((p) => this.botIds.includes(p.id) && !p.downed && !p.ready);
-    if (!bot) return;
-    setTimeout(() => {
-      if (!this.state || this.state !== state) return;
-      const result = applyCommand(state, bot.id, botCommand(state, bot.id, this.botRng));
-      if (!result.ok) return;
-      this.state = result.state;
-      this.publish(result.events);
-      this.runBots();
-    }, 350);
+  /** Abandon the expedition and delete the save. */
+  abandon(): void {
+    save(null);
+    this.run = null;
+    this.file = null;
   }
 
-  private publish(events: CombatEvent[]): void {
-    if (!this.state) return;
-    this.currentView = viewFor(this.state, this.playerId);
+  private options(seed: string, squad: MercSetup[]) {
+    return {
+      seed,
+      players: [{ id: this.playerId, name: this.name }],
+      mercs: squad.map((setup) => ({ ownerId: this.playerId, setup })),
+    };
+  }
+
+  private publish(events: RunEvent[]): void {
+    if (!this.run) return;
+    this.currentView = viewFor(this.run, this.playerId);
     this.emitter.emit({ type: "state", view: this.currentView, events });
   }
 }

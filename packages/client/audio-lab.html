@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Radiance Audio Lab</title>
+    <style>
+      :root {
+        --bg: #0d0b14;
+        --panel: #1a1626;
+        --panel-2: #241e35;
+        --ink: #f2ead8;
+        --muted: #a49cb5;
+        --gold: #f5c45e;
+        --danger: #e0655a;
+        --ok: #7fcf8a;
+        color-scheme: dark;
+        font-family: Georgia, "Times New Roman", serif;
+        color: var(--ink);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        background: var(--bg);
+      }
+      body {
+        margin: 0;
+        padding: 16px;
+        background:
+          radial-gradient(circle at 50% 0, #2b2140 0, var(--bg) 900px) no-repeat,
+          var(--bg);
+        min-height: 100vh;
+      }
+      h1 {
+        margin: 0 0 4px;
+        color: var(--gold);
+        font-weight: normal;
+        letter-spacing: 0.04em;
+      }
+      h2 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        font-weight: normal;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+      }
+      p.hint {
+        margin: 0 0 16px;
+        color: var(--muted);
+      }
+      section {
+        background: var(--panel);
+        border: 1px solid #3a3150;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+      .grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      button {
+        font: inherit;
+        font-size: 13px;
+        color: var(--ink);
+        background: var(--panel-2);
+        border: 1px solid #4a3f66;
+        border-radius: 5px;
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: var(--gold);
+      }
+      button.active {
+        background: var(--gold);
+        color: var(--bg);
+      }
+      .group-label {
+        width: 100%;
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .sliders {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 10px 20px;
+      }
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--gold);
+      }
+      #status {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      #status.on {
+        color: var(--ok);
+      }
+      table {
+        border-collapse: collapse;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 12px;
+        margin-top: 8px;
+      }
+      th,
+      td {
+        padding: 2px 10px;
+        text-align: right;
+        border-bottom: 1px solid #2c2540;
+      }
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+      td.bad {
+        color: var(--danger);
+      }
+      td.good {
+        color: var(--ok);
+      }
+      .tables {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Radiance — Audio Lab</h1>
+    <p class="hint">Procedural Web Audio. Click anywhere to unlock. <span id="status">locked</span></p>
+    <section>
+      <h2>Mix</h2>
+      <div class="sliders" id="sliders"></div>
+    </section>
+    <section>
+      <h2>Music</h2>
+      <div class="grid" id="moods"></div>
+    </section>
+    <section>
+      <h2>Sound effects</h2>
+      <div class="grid" id="sfx"></div>
+    </section>
+    <section>
+      <h2>Offline render test</h2>
+      <button type="button" id="run-offline">Render all SFX + moods</button>
+      <div class="tables" id="offline"></div>
+    </section>
+    <script type="module" src="/src/audio/lab.ts"></script>
+  </body>
+</html>
