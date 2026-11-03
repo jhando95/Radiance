@@ -3,17 +3,17 @@
  * shell widgets (pause, toast, modal, prompt, tooltip, widgets) for screenshots and testing.
  */
 import * as Phaser from "phaser";
-import { RARITY_COLORS } from "../art/palette";
 import { SCENES } from "../app/scenes";
 import { enemyTexture, mercTexture } from "../app/textures";
+import { RARITY_COLORS } from "../art/palette";
 import { Button } from "../ui/Button";
 import { FocusGroup } from "../ui/focus";
 import { confirmDialog, promptDialog } from "../ui/Modal";
 import { createPanel } from "../ui/Panel";
 import { addBackdrop } from "../ui/screen";
-import { COLORS, GAME_H, GAME_W, TEXT } from "../ui/theme";
 import { toast } from "../ui/Toast";
 import { attachTooltip, showTooltip } from "../ui/Tooltip";
+import { COLORS, GAME_H, GAME_W, TEXT } from "../ui/theme";
 import { bindPauseKey, openPause } from "./PauseOverlay";
 
 export class DebugScene extends Phaser.Scene {
@@ -47,24 +47,39 @@ export class DebugScene extends Phaser.Scene {
         t(500, () => toast(this, "Connection lost. Retrying…", "error"));
         break;
       case "modal":
-        t(300, () => void confirmDialog(this, {
-          title: "Abandon expedition?",
-          body: "Your squad retreats to the dropship. Unbanked loot from this expedition is lost.",
-          confirmLabel: "Abandon",
-          cancelLabel: "Keep going",
-          danger: true,
-        }));
+        t(
+          300,
+          () =>
+            void confirmDialog(this, {
+              title: "Abandon expedition?",
+              body: "Your squad retreats to the dropship. Unbanked loot from this expedition is lost.",
+              confirmLabel: "Abandon",
+              cancelLabel: "Keep going",
+              danger: true,
+            }),
+        );
         break;
       case "prompt":
-        t(300, () => void promptDialog(this, {
-          title: "Join Co-op",
-          body: "Enter the room code your host shared.",
-          fields: [
-            { key: "name", label: "Your callsign", value: "Vex", maxLength: 16 },
-            { key: "code", label: "Room code", placeholder: "ABCD", uppercase: true, maxLength: 6, className: "rad-input--code" },
-          ],
-          confirmLabel: "Join",
-        }));
+        t(
+          300,
+          () =>
+            void promptDialog(this, {
+              title: "Join Co-op",
+              body: "Enter the room code your host shared.",
+              fields: [
+                { key: "name", label: "Your callsign", value: "Vex", maxLength: 16 },
+                {
+                  key: "code",
+                  label: "Room code",
+                  placeholder: "ABCD",
+                  uppercase: true,
+                  maxLength: 6,
+                  className: "rad-input--code",
+                },
+              ],
+              confirmLabel: "Join",
+            }),
+        );
         break;
       case "tooltip": {
         const slot = createPanel(this, 400, 200, 96, 96, { variant: "highlight" });
@@ -87,7 +102,10 @@ export class DebugScene extends Phaser.Scene {
               title: "Lantern Bash",
               titleColor: COLORS.accentBright,
               subtitle: "Skill · Cooldown 2",
-              lines: ["Deal 120% damage and light the target for 2 turns.", { text: "Use from ranks 1–2", color: COLORS.textDim, size: "small" }],
+              lines: [
+                "Deal 120% damage and light the target for 2 turns.",
+                { text: "Use from ranks 1–2", color: COLORS.textDim, size: "small" },
+              ],
             },
             420,
             220,
@@ -96,9 +114,18 @@ export class DebugScene extends Phaser.Scene {
         break;
       }
       case "widgets": {
-        const b1 = new Button(this, GAME_W / 2 - 260, GAME_H - 80, { label: "Primary", kind: "primary" });
-        const b2 = new Button(this, GAME_W / 2, GAME_H - 80, { label: "Secondary", icon: "ui_ore" });
-        const b3 = new Button(this, GAME_W / 2 + 260, GAME_H - 80, { label: "Disabled", disabled: true });
+        const b1 = new Button(this, GAME_W / 2 - 260, GAME_H - 80, {
+          label: "Primary",
+          kind: "primary",
+        });
+        const b2 = new Button(this, GAME_W / 2, GAME_H - 80, {
+          label: "Secondary",
+          icon: "ui_ore",
+        });
+        const b3 = new Button(this, GAME_W / 2 + 260, GAME_H - 80, {
+          label: "Disabled",
+          disabled: true,
+        });
         new FocusGroup(this, [b1, b2, b3], { axis: "horizontal" });
         break;
       }

@@ -105,7 +105,8 @@ export class OnlineSession implements GameSession {
       this.emitter.emit({ type: "status", text: "" });
       const v = PROTOCOL_VERSION;
       if (this.rejoin) this.send({ t: "rejoin", v, ...this.rejoin });
-      else if (this.intent.kind === "create") this.send({ t: "createRoom", v, name: this.intent.name });
+      else if (this.intent.kind === "create")
+        this.send({ t: "createRoom", v, name: this.intent.name });
       else if (this.intent.kind === "join") {
         this.send({ t: "joinRoom", v, code: this.intent.code, name: this.intent.name });
       }
@@ -141,7 +142,12 @@ export class OnlineSession implements GameSession {
         saveRejoin(this.rejoin);
         break;
       case "lobby":
-        this.lobby = { code: msg.code, hostId: msg.hostId, players: msg.players, started: msg.started };
+        this.lobby = {
+          code: msg.code,
+          hostId: msg.hostId,
+          players: msg.players,
+          started: msg.started,
+        };
         this.emitter.emit({ type: "lobby", lobby: this.lobby });
         break;
       case "state":

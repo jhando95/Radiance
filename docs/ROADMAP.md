@@ -4,10 +4,12 @@ Each milestone has an **exit test**. Estimates are rough sizing for a small team
 assistance.
 
 ## ✅ M0 — Foundation
+
 Monorepo, deterministic core, authoritative server, CI. (The original card prototype was replaced in
 M1.)
 
 ## ✅ M1 — Playable prototype (current)
+
 - [x] **Ranked ability combat:** ranks, initiative, 30 merc skills with cooldowns, 17 statuses,
   guard/taunt, crits, elements and resistances
 - [x] **Light system:** lamp charge, light radius, lit/unlit, umbral enemies, flares/beacons, loot
@@ -30,6 +32,7 @@ M1.)
 boss, equip loot and pick perks. Two friends can do the same online with a room code.
 
 ## M2 — Feel & balance (~3–4 weeks)
+
 - [ ] Balance pass with the simulator: target 55–65% bot win rate for a balanced squad, and no
   discipline below 40%
 - [ ] Skill VFX per skill (projectiles, slashes, light bursts), hit-stop, camera punch; boss intro
@@ -39,6 +42,7 @@ boss, equip loot and pick perks. Two friends can do the same online with a room 
 - [ ] Playwright E2E in CI (solo run to first fight; co-op lobby → departure)
 
 ## M3 — Depth (~4–6 weeks)
+
 - [ ] **Events** with choices (data-driven), including co-op dilemmas
 - [ ] **Mercenary company** meta-layer: roster persists between expeditions (server accounts or local
   profiles), recruit market, base upgrades, injuries and quirks
@@ -47,21 +51,23 @@ boss, equip loot and pick perks. Two friends can do the same online with a room 
 - [ ] Trinket set bonuses, more relics
 
 ## M4 — Online polish & public playtest (~3 weeks)
+
 - [ ] Deploy: static client (Cloudflare Pages / itch.io) and server (Fly.io) over `wss://`
 - [ ] Server persistence for runs (seed + log in SQLite), resume after server restart
 - [ ] Emotes and pings, spectating, "kick idle player → bot"
 - [ ] Opt-in telemetry for balance; one-click bug report (seed + log)
 
 ## M5 — Vertical slice & Steam (~2–3 months)
+
 - [ ] Art pass: hand-tuned key sprites on top of the procedural base, portraits, boss animation
 - [ ] Desktop build (Electron + steamworks.js): friend invites, achievements, cloud saves
 - [ ] Store page, trailer, Steam Deck verification, localization pipeline
 
 ## Risks
 
-| Risk | Mitigation |
-|---|---|
-| Build combinatorics break balance | Simulator, per-discipline win-rate targets, perk pools per discipline |
-| Co-op downtime (waiting for others' turns) | Fast enemy turns, animation speed setting, turn timer, bot fill-in |
-| Procedural art ceiling | Strong palette and lighting now; hand-authored overrides later through the same API |
-| Looking like a Darkest Dungeon clone | Light/ore/relic economy, sci-fi frontier setting, co-op ownership, loot affixes, no stress system |
+| Risk                                       | Mitigation                                                                                        |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| Build combinatorics break balance          | Simulator, per-discipline win-rate targets, perk pools per discipline                             |
+| Co-op downtime (waiting for others' turns) | Fast enemy turns, animation speed setting, turn timer, bot fill-in                                |
+| Procedural art ceiling                     | Strong palette and lighting now; hand-authored overrides later through the same API               |
+| Looking like a Darkest Dungeon clone       | Light/ore/relic economy, sci-fi frontier setting, co-op ownership, loot affixes, no stress system |

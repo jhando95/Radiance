@@ -20,13 +20,13 @@ import { type Focusable, FocusGroup } from "../ui/focus";
 import { confirmDialog } from "../ui/Modal";
 import { createPanel } from "../ui/Panel";
 import type { Row } from "../ui/Row";
-import { addBackdrop, addHeader, addKeyHint } from "../ui/screen";
 import { Selector } from "../ui/Selector";
 import { Slider } from "../ui/Slider";
+import { addBackdrop, addHeader, addKeyHint } from "../ui/screen";
 import { TextField } from "../ui/TextInput";
-import { COLOR_NUM, COLORS, GAME_H, GAME_W, GRID, playUiSound, TEXT } from "../ui/theme";
-import { Toggle } from "../ui/Toggle";
 import { toast } from "../ui/Toast";
+import { Toggle } from "../ui/Toggle";
+import { COLOR_NUM, COLORS, GAME_H, GAME_W, GRID, playUiSound, TEXT } from "../ui/theme";
 
 export interface SubScreenData {
   /** Scene to return to (default: title). */
@@ -188,7 +188,10 @@ export class SettingsScene extends Phaser.Scene {
       value: this.scale.isFullscreen,
       onChange: () => this.toggleFullscreen(),
     });
-    rows.push({ row: this.controls.fullscreen, hint: "Fill the whole screen. Press Esc to leave." });
+    rows.push({
+      row: this.controls.fullscreen,
+      hint: "Fill the whole screen. Press Esc to leave.",
+    });
 
     // Hint strip at the bottom of the panel.
     const hintY = panelTop + panelH - 44;

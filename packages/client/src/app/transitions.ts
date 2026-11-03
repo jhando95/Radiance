@@ -67,7 +67,11 @@ export function shake(scene: Phaser.Scene, duration = 180, intensity = 0.006): v
 }
 
 /** Quick white/amber flash (e.g. crits, flares). */
-export function flash(scene: Phaser.Scene, duration = 120, color: string = COLORS.accentPale): void {
+export function flash(
+  scene: Phaser.Scene,
+  duration = 120,
+  color: string = COLORS.accentPale,
+): void {
   const [r, g, b] = hexToRgb(color);
   scene.cameras.main.flash(duration, r, g, b);
 }

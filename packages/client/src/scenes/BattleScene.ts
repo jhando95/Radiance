@@ -13,18 +13,18 @@ import {
   validTargets,
 } from "@radiance/core";
 import * as Phaser from "phaser";
-import { ELEMENT_COLORS, hexNum, RAMPS } from "../art/palette";
-import { audio, type Sfx } from "../audio";
 import { SCENES } from "../app/scenes";
 import { animDuration, getSettings } from "../app/settings";
 import { backdropTexture, iconTexture } from "../app/textures";
 import { goTo } from "../app/transitions";
+import { ELEMENT_COLORS, hexNum, RAMPS } from "../art/palette";
+import { audio, type Sfx } from "../audio";
 import { type GameGlobals, globals } from "../game/globals";
-import { unitFrame, type UnitPose, unitPortrait, unitTexture } from "../game/unitArt";
+import { type UnitPose, unitFrame, unitPortrait, unitTexture } from "../game/unitArt";
 import type { GameSession, SessionEvent } from "../net/session";
 import { Button } from "../ui/Button";
-import { attachTooltip } from "../ui/Tooltip";
 import { toast } from "../ui/Toast";
+import { attachTooltip } from "../ui/Tooltip";
 import { COLOR_NUM, COLORS, FONT_FAMILY, GAME_H, GAME_W, TEXT } from "../ui/theme";
 
 const FEET_Y = 500;
@@ -201,7 +201,10 @@ export class BattleScene extends Phaser.Scene {
     this.showBanner(won ? "VICTORY" : "DEFEAT", won ? COLORS.accentBright : COLORS.danger);
     audio.play(won ? "victory" : "defeat");
     this.time.delayedCall(1500, () => {
-      goTo(this, view.phase === "victory" || view.phase === "defeat" ? SCENES.summary : SCENES.expedition);
+      goTo(
+        this,
+        view.phase === "victory" || view.phase === "defeat" ? SCENES.summary : SCENES.expedition,
+      );
     });
   }
 
@@ -229,7 +232,13 @@ export class BattleScene extends Phaser.Scene {
     for (const [id, s] of this.units) {
       if (present.has(id)) continue;
       this.units.delete(id);
-      this.tweens.add({ targets: s.root, alpha: 0, y: s.root.y + 20, duration: 300, onComplete: () => s.root.destroy() });
+      this.tweens.add({
+        targets: s.root,
+        alpha: 0,
+        y: s.root.y + 20,
+        duration: 300,
+        onComplete: () => s.root.destroy(),
+      });
     }
     this.renderLighting();
     this.renderTurnBar();
@@ -249,16 +258,31 @@ export class BattleScene extends Phaser.Scene {
       .setOrigin(frame.centerX / frame.w, frame.footY / frame.h)
       .setScale(scale);
     const barW = 96;
-    const hpBack = this.add.rectangle(-barW / 2, 22, barW, 10, 0x05040a).setOrigin(0, 0.5).setStrokeStyle(2, 0x231f3d);
-    const hpFill = this.add.rectangle(-barW / 2 + 1, 22, barW - 2, 6, u.side === "merc" ? 0xbd4a2e : 0x82261f).setOrigin(0, 0.5);
-    const hpText = this.add.text(0, 32, "", { fontFamily: FONT_FAMILY, fontSize: "16px", color: COLORS.text }).setOrigin(0.5, 0);
-    const shieldText = this.add.text(barW / 2 + 6, 22, "", { fontFamily: FONT_FAMILY, fontSize: "16px", color: COLORS.info }).setOrigin(0, 0.5);
+    const hpBack = this.add
+      .rectangle(-barW / 2, 22, barW, 10, 0x05040a)
+      .setOrigin(0, 0.5)
+      .setStrokeStyle(2, 0x231f3d);
+    const hpFill = this.add
+      .rectangle(-barW / 2 + 1, 22, barW - 2, 6, u.side === "merc" ? 0xbd4a2e : 0x82261f)
+      .setOrigin(0, 0.5);
+    const hpText = this.add
+      .text(0, 32, "", { fontFamily: FONT_FAMILY, fontSize: "16px", color: COLORS.text })
+      .setOrigin(0.5, 0);
+    const shieldText = this.add
+      .text(barW / 2 + 6, 22, "", { fontFamily: FONT_FAMILY, fontSize: "16px", color: COLORS.info })
+      .setOrigin(0, 0.5);
     const statusRow = this.add.container(0, 58);
     const marker = this.add
-      .text(0, frame.w > 48 ? -frame.footY * scale * 0.85 : -(36 * scale + 6), "▼", { fontFamily: FONT_FAMILY, fontSize: "28px", color: COLORS.accentBright })
+      .text(0, frame.w > 48 ? -frame.footY * scale * 0.85 : -(36 * scale + 6), "▼", {
+        fontFamily: FONT_FAMILY,
+        fontSize: "28px",
+        color: COLORS.accentBright,
+      })
       .setOrigin(0.5, 1)
       .setVisible(false);
-    const hit = this.add.rectangle(0, -70, 116, 190, 0xffffff, 0).setInteractive({ useHandCursor: true });
+    const hit = this.add
+      .rectangle(0, -70, 116, 190, 0xffffff, 0)
+      .setInteractive({ useHandCursor: true });
     root.add([shadow, sprite, hpBack, hpFill, hpText, shieldText, statusRow, marker, hit]);
     const s: UnitSprite = {
       id: u.id,
@@ -294,7 +318,8 @@ export class BattleScene extends Phaser.Scene {
     const x = u.side === "merc" ? MERC_X(u.rank) : ENEMY_X(u.rank);
     s.baseX = x;
     if (instant) s.root.x = x;
-    else if (Math.abs(s.root.x - x) > 1) this.tweens.add({ targets: s.root, x, duration: animDuration(260), ease: "Quad.out" });
+    else if (Math.abs(s.root.x - x) > 1)
+      this.tweens.add({ targets: s.root, x, duration: animDuration(260), ease: "Quad.out" });
     s.hp = u.hp;
     s.maxHp = u.stats.maxHp;
     s.hidden = u.hidden;
@@ -307,9 +332,15 @@ export class BattleScene extends Phaser.Scene {
     s.statusRow.removeAll(true);
     const shown = u.statuses.filter((st) => st.id !== "shield").slice(0, 5);
     shown.forEach((st, i) => {
-      const icon = this.add.image((i - (shown.length - 1) / 2) * 28, 0, iconTexture(this, `status_${st.id}`)).setScale(1.5);
+      const icon = this.add
+        .image((i - (shown.length - 1) / 2) * 28, 0, iconTexture(this, `status_${st.id}`))
+        .setScale(1.5);
       const turns = this.add
-        .text(icon.x + 8, 6, String(st.turns), { fontFamily: FONT_FAMILY, fontSize: "12px", color: COLORS.text })
+        .text(icon.x + 8, 6, String(st.turns), {
+          fontFamily: FONT_FAMILY,
+          fontSize: "12px",
+          color: COLORS.text,
+        })
         .setOrigin(0.5, 0);
       s.statusRow.add([icon, turns]);
     });
@@ -341,7 +372,8 @@ export class BattleScene extends Phaser.Scene {
     if (this.playing) return;
     this.idleFrame ^= 1;
     for (const s of this.units.values()) {
-      if (s.pose === "idle0" || s.pose === "idle1") this.setPose(s, this.idleFrame ? "idle1" : "idle0");
+      if (s.pose === "idle0" || s.pose === "idle1")
+        this.setPose(s, this.idleFrame ? "idle1" : "idle0");
     }
   }
 
@@ -418,16 +450,28 @@ export class BattleScene extends Phaser.Scene {
     const y = 20;
     this.lightHud.add(this.add.image(x + 12, y + 12, iconTexture(this, "ui_lamp")).setScale(2));
     const barW = 160;
-    this.lightHud.add(this.add.rectangle(x + 32, y + 12, barW, 12, 0x05040a).setOrigin(0, 0.5).setStrokeStyle(2, 0x34305a));
     this.lightHud.add(
-      this.add.rectangle(x + 33, y + 12, ((barW - 2) * view.lampCharge) / 100, 8, hexNum(RAMPS.lamp[3])).setOrigin(0, 0.5),
+      this.add
+        .rectangle(x + 32, y + 12, barW, 12, 0x05040a)
+        .setOrigin(0, 0.5)
+        .setStrokeStyle(2, 0x34305a),
+    );
+    this.lightHud.add(
+      this.add
+        .rectangle(x + 33, y + 12, ((barW - 2) * view.lampCharge) / 100, 8, hexNum(RAMPS.lamp[3]))
+        .setOrigin(0, 0.5),
     );
     const label = ["Bright", "Dim", "Dark", "Pitch dark"][darknessLevel(view.lampCharge)] as string;
     this.lightHud.add(
-      this.add.text(x + 32, y + 24, `Lamp ${view.lampCharge}% · ${label} · light reaches ${combat.lightRadius} rank${combat.lightRadius === 1 ? "" : "s"}`, {
-        ...TEXT.tiny,
-        color: COLORS.textDim,
-      }),
+      this.add.text(
+        x + 32,
+        y + 24,
+        `Lamp ${view.lampCharge}% · ${label} · light reaches ${combat.lightRadius} rank${combat.lightRadius === 1 ? "" : "s"}`,
+        {
+          ...TEXT.tiny,
+          color: COLORS.textDim,
+        },
+      ),
     );
   }
 
@@ -440,7 +484,9 @@ export class BattleScene extends Phaser.Scene {
     const size = 44;
     const startX = GAME_W / 2 - ((order.length - 1) * (size + 8)) / 2;
     this.turnBar.add(
-      this.add.text(GAME_W / 2, 16, `ROUND ${combat.round}`, { ...TEXT.tiny, color: COLORS.textMuted }).setOrigin(0.5, 0),
+      this.add
+        .text(GAME_W / 2, 16, `ROUND ${combat.round}`, { ...TEXT.tiny, color: COLORS.textMuted })
+        .setOrigin(0.5, 0),
     );
     order.forEach((id, i) => {
       const u = this.findUnitView(id);
@@ -450,7 +496,10 @@ export class BattleScene extends Phaser.Scene {
       const active = i === 0;
       const frame = this.add
         .rectangle(x, y, size, size, u.side === "merc" ? 0x17142a : 0x24090c)
-        .setStrokeStyle(active ? 3 : 2, active ? COLOR_NUM.accentBright : u.side === "merc" ? 0x566c8f : 0x82261f);
+        .setStrokeStyle(
+          active ? 3 : 2,
+          active ? COLOR_NUM.accentBright : u.side === "merc" ? 0x566c8f : 0x82261f,
+        );
       const portrait = this.add.image(x, y, unitPortrait(this, u, view.mercs)).setScale(size / 26);
       if (u.side === "enemy" && !u.lit) portrait.setTint(0x4a4677);
       this.turnBar.add([frame, portrait]);
@@ -471,7 +520,9 @@ export class BattleScene extends Phaser.Scene {
 
   private myTurn(): boolean {
     const u = this.activeUnit();
-    return !!u && u.ownerId === this.view?.viewerId && !this.playing && this.view?.phase === "combat";
+    return (
+      !!u && u.ownerId === this.view?.viewerId && !this.playing && this.view?.phase === "combat"
+    );
   }
 
   private renderHud(): void {
@@ -486,18 +537,27 @@ export class BattleScene extends Phaser.Scene {
     const unit = this.activeUnit();
 
     if (!unit) {
-      this.hud.add(this.add.text(GAME_W / 2, HUD_Y + 64, this.playing ? "" : "…", TEXT.bodyDim).setOrigin(0.5));
+      this.hud.add(
+        this.add.text(GAME_W / 2, HUD_Y + 64, this.playing ? "" : "…", TEXT.bodyDim).setOrigin(0.5),
+      );
       return;
     }
     // Active merc info.
-    const portrait = this.add.image(72, HUD_Y + 72, unitPortrait(this, unit, view.mercs)).setScale(3.4);
+    const portrait = this.add
+      .image(72, HUD_Y + 72, unitPortrait(this, unit, view.mercs))
+      .setScale(3.4);
     const owner = view.players.find((p) => p.id === unit.ownerId)?.name ?? "";
     const mine = unit.ownerId === view.viewerId;
     this.hud.add([
       this.add.rectangle(72, HUD_Y + 72, 92, 92, 0x17142a).setStrokeStyle(2, COLOR_NUM.accent),
       portrait,
       this.add.text(132, HUD_Y + 20, unit.name, TEXT.subheading),
-      this.add.text(132, HUD_Y + 46, `${unit.hp}/${unit.stats.maxHp} HP · Rank ${unit.rank}`, TEXT.small),
+      this.add.text(
+        132,
+        HUD_Y + 46,
+        `${unit.hp}/${unit.stats.maxHp} HP · Rank ${unit.rank}`,
+        TEXT.small,
+      ),
       this.add.text(132, HUD_Y + 68, mine ? "Your turn" : `${owner}'s turn`, {
         ...TEXT.small,
         color: mine ? COLORS.accentBright : COLORS.textMuted,
@@ -505,7 +565,11 @@ export class BattleScene extends Phaser.Scene {
     ]);
     if (!mine || this.playing) {
       if (!mine) {
-        this.hud.add(this.add.text(GAME_W / 2 + 60, HUD_Y + 72, `Waiting for ${owner}…`, TEXT.bodyDim).setOrigin(0.5));
+        this.hud.add(
+          this.add
+            .text(GAME_W / 2 + 60, HUD_Y + 72, `Waiting for ${owner}…`, TEXT.bodyDim)
+            .setOrigin(0.5),
+        );
       }
       return;
     }
@@ -522,17 +586,30 @@ export class BattleScene extends Phaser.Scene {
       const selected = this.selectedSkill === id;
       const frame = this.add
         .rectangle(x, y, size, size, selected ? 0x3b1f0e : 0x17142a)
-        .setStrokeStyle(selected ? 3 : 2, selected ? COLOR_NUM.accentBright : blocker ? 0x34305a : COLOR_NUM.accent)
+        .setStrokeStyle(
+          selected ? 3 : 2,
+          selected ? COLOR_NUM.accentBright : blocker ? 0x34305a : COLOR_NUM.accent,
+        )
         .setInteractive({ useHandCursor: !blocker });
       const icon = this.add.image(x, y, iconTexture(this, skillIcon(skill))).setScale(3.5);
       if (blocker) icon.setTint(0x4a4677);
-      const key = this.add.text(x - size / 2 + 4, y - size / 2 + 2, String(i + 1), { ...TEXT.tiny, color: COLORS.textMuted });
+      const key = this.add.text(x - size / 2 + 4, y - size / 2 + 2, String(i + 1), {
+        ...TEXT.tiny,
+        color: COLORS.textMuted,
+      });
       this.hud.add([frame, icon, key]);
       if (cd > 0) {
         this.hud.add(this.add.rectangle(x, y, size - 4, size - 4, 0x000000, 0.55));
-        this.hud.add(this.add.text(x, y, String(cd), { ...TEXT.title, fontSize: "32px" }).setOrigin(0.5));
+        this.hud.add(
+          this.add.text(x, y, String(cd), { ...TEXT.title, fontSize: "32px" }).setOrigin(0.5),
+        );
       }
-      const label = this.add.text(x, y + size / 2 + 6, skill.name, { ...TEXT.tiny, color: blocker ? COLORS.textMuted : COLORS.text }).setOrigin(0.5, 0);
+      const label = this.add
+        .text(x, y + size / 2 + 6, skill.name, {
+          ...TEXT.tiny,
+          color: blocker ? COLORS.textMuted : COLORS.text,
+        })
+        .setOrigin(0.5, 0);
       label.setWordWrapWidth(size + 12);
       label.setAlign("center");
       this.hud.add(label);
@@ -549,7 +626,9 @@ export class BattleScene extends Phaser.Scene {
         return {
           title: text.name,
           titleColor: ELEMENT_COLORS[skill.element],
-          subtitle: [text.usage, text.cooldown ? `Cooldown ${text.cooldown}` : ""].filter(Boolean).join(" · "),
+          subtitle: [text.usage, text.cooldown ? `Cooldown ${text.cooldown}` : ""]
+            .filter(Boolean)
+            .join(" · "),
           lines: [...text.lines, ...(blocker ? [{ text: blocker, color: COLORS.danger }] : [])],
         };
       });
@@ -558,9 +637,19 @@ export class BattleScene extends Phaser.Scene {
     if (this.selectedSkill) {
       const skill = getSkill(this.selectedSkill);
       const targets = validTargets(combat, unit, skill).map((t) => t.id);
-      for (const id of targets) this.units.get(id)?.marker.setVisible(true).setColor(skill.target.side === "enemy" ? COLORS.danger : COLORS.success);
-      const hint = skill.target.aoe ? "Click any highlighted target to unleash" : "Choose a target · Esc to cancel";
-      this.hud.add(this.add.text(GAME_W / 2 + 120, HUD_Y - 28, hint, { ...TEXT.small, color: COLORS.accentPale }).setOrigin(0.5));
+      for (const id of targets)
+        this.units
+          .get(id)
+          ?.marker.setVisible(true)
+          .setColor(skill.target.side === "enemy" ? COLORS.danger : COLORS.success);
+      const hint = skill.target.aoe
+        ? "Click any highlighted target to unleash"
+        : "Choose a target · Esc to cancel";
+      this.hud.add(
+        this.add
+          .text(GAME_W / 2 + 120, HUD_Y - 28, hint, { ...TEXT.small, color: COLORS.accentPale })
+          .setOrigin(0.5),
+      );
     }
   }
 
@@ -570,7 +659,8 @@ export class BattleScene extends Phaser.Scene {
     const skill = getSkill(id);
     if ((unit.cooldowns[id] ?? 0) > 0) return `${skill.name} is on cooldown.`;
     const targets = validTargets(combat, unit, skill);
-    if (!(skill.from as number[]).includes(unit.rank)) return `Can't be used from rank ${unit.rank}.`;
+    if (!(skill.from as number[]).includes(unit.rank))
+      return `Can't be used from rank ${unit.rank}.`;
     if (targets.length === 0) return "No valid targets in range.";
     return null;
   }
@@ -629,7 +719,12 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     this.selectedSkill = null;
-    this.session.command({ type: "useSkill", unitId: unit.id, skillId, ...(targetId ? { targetId } : {}) });
+    this.session.command({
+      type: "useSkill",
+      unitId: unit.id,
+      skillId,
+      ...(targetId ? { targetId } : {}),
+    });
     // Lock input until the server answers.
     this.hud.removeAll(true);
   }
@@ -638,15 +733,34 @@ export class BattleScene extends Phaser.Scene {
     const u = this.findUnitView(id);
     if (!u) return null;
     const lines: { text: string; color?: string; icon?: string }[] = [];
-    if (u.hidden) lines.push({ text: "Shrouded in darkness. Light this rank to see its health.", color: COLORS.textMuted });
-    else lines.push({ text: `${u.hp}/${u.stats.maxHp} HP · Speed ${u.stats.speed} · Dodge ${u.stats.dodge} · Prot ${u.stats.prot}%` });
-    if (u.umbral) lines.push({ text: "Umbral: stronger in darkness, weak to radiant.", color: COLORS.umbra });
+    if (u.hidden)
+      lines.push({
+        text: "Shrouded in darkness. Light this rank to see its health.",
+        color: COLORS.textMuted,
+      });
+    else
+      lines.push({
+        text: `${u.hp}/${u.stats.maxHp} HP · Speed ${u.stats.speed} · Dodge ${u.stats.dodge} · Prot ${u.stats.prot}%`,
+      });
+    if (u.umbral)
+      lines.push({ text: "Umbral: stronger in darkness, weak to radiant.", color: COLORS.umbra });
     for (const st of u.statuses) {
-      lines.push({ text: `${st.id[0]?.toUpperCase()}${st.id.slice(1)} ${st.value ? `(${st.value}) ` : ""}— ${st.turns} turn(s)`, color: STATUS_COLORS[st.id], icon: `status_${st.id}` });
+      lines.push({
+        text: `${st.id[0]?.toUpperCase()}${st.id.slice(1)} ${st.value ? `(${st.value}) ` : ""}— ${st.turns} turn(s)`,
+        color: STATUS_COLORS[st.id],
+        icon: `status_${st.id}`,
+      });
     }
     return {
       title: u.name,
-      titleColor: u.side === "merc" ? COLORS.accentBright : u.boss ? COLORS.relic : u.elite ? COLORS.epic : COLORS.danger,
+      titleColor:
+        u.side === "merc"
+          ? COLORS.accentBright
+          : u.boss
+            ? COLORS.relic
+            : u.elite
+              ? COLORS.epic
+              : COLORS.danger,
       subtitle: `Rank ${u.rank}${u.side === "enemy" ? (u.lit ? " · Lit" : " · Unlit") : ""}`,
       lines,
     };
@@ -659,7 +773,14 @@ export class BattleScene extends Phaser.Scene {
   private floatText(x: number, y: number, text: string, color: string, size = 28, delay = 0): void {
     if (!getSettings().damageNumbers && /^\d/.test(text)) return;
     const t = this.add
-      .text(x, y, text, { fontFamily: FONT_FAMILY, fontSize: `${size}px`, fontStyle: "700", color, stroke: "#05040a", strokeThickness: 5 })
+      .text(x, y, text, {
+        fontFamily: FONT_FAMILY,
+        fontSize: `${size}px`,
+        fontStyle: "700",
+        color,
+        stroke: "#05040a",
+        strokeThickness: 5,
+      })
       .setOrigin(0.5)
       .setDepth(200)
       .setAlpha(0);
@@ -693,7 +814,8 @@ export class BattleScene extends Phaser.Scene {
         const s = this.units.get(ev.unitId);
         if (!s) return;
         const skill = getSkill(ev.skillId);
-        const unitView = this.findUnitView(ev.unitId) ?? next.combat?.mercs.find((u) => u.id === ev.unitId);
+        const unitView =
+          this.findUnitView(ev.unitId) ?? next.combat?.mercs.find((u) => u.id === ev.unitId);
         if (skill.id === "wait") {
           this.floatText(s.root.x, this.headY(s), "Hold", COLORS.textDim, 20);
           return this.wait(250);
@@ -704,13 +826,21 @@ export class BattleScene extends Phaser.Scene {
         }
         const hostile = skill.target.side === "enemy";
         const ranged = !(skill.from as number[]).includes(1);
-        const caster = skill.kind === "support" || skill.element === "radiant" || skill.element === "void";
+        const caster =
+          skill.kind === "support" || skill.element === "radiant" || skill.element === "void";
         this.setPose(s, caster && (ranged || !hostile) ? "cast" : "attack");
         this.label(s, skill.name, unitView?.side === "enemy" ? COLORS.danger : COLORS.accentPale);
         audio.play(this.skillSfx(unitView, skill.element, ranged, caster, hostile));
         if (hostile && !ranged) {
           const dir = s.side === "merc" ? 1 : -1;
-          this.tweens.add({ targets: s.root, x: s.baseX + 46 * dir, duration: animDuration(120), yoyo: true, hold: animDuration(140), ease: "Quad.out" });
+          this.tweens.add({
+            targets: s.root,
+            x: s.baseX + 46 * dir,
+            duration: animDuration(120),
+            yoyo: true,
+            hold: animDuration(140),
+            ease: "Quad.out",
+          });
         } else if (hostile && ranged) {
           const target = ev.targetIds[0] ? this.units.get(ev.targetIds[0]) : undefined;
           if (target) this.projectile(s, target, ELEMENT_COLORS[skill.element]);
@@ -730,7 +860,12 @@ export class BattleScene extends Phaser.Scene {
           t.sprite.setTint(u && u.side === "enemy" && !u.lit ? 0x4a4677 : 0xffffff);
         });
         const dir = t.side === "merc" ? -1 : 1;
-        this.tweens.add({ targets: t.root, x: t.baseX + 14 * dir, duration: animDuration(70), yoyo: true });
+        this.tweens.add({
+          targets: t.root,
+          x: t.baseX + 14 * dir,
+          duration: animDuration(70),
+          yoyo: true,
+        });
         t.hp -= ev.amount;
         this.drawHp(t);
         const color = ELEMENT_COLORS[ev.element];
@@ -743,7 +878,8 @@ export class BattleScene extends Phaser.Scene {
           audio.play(this.hitSfx(ev.element));
         }
         this.floatText(t.root.x, this.headY(t), text, color, ev.crit ? 40 : 30);
-        if (ev.absorbed > 0 && ev.amount > 0) this.floatText(t.root.x + 40, this.headY(t) + 20, `◆${ev.absorbed}`, COLORS.info, 18);
+        if (ev.absorbed > 0 && ev.amount > 0)
+          this.floatText(t.root.x + 40, this.headY(t) + 20, `◆${ev.absorbed}`, COLORS.info, 18);
         void src;
         await this.wait(230);
         if (t.pose === "hurt") this.setPose(t, "idle0");
@@ -755,7 +891,12 @@ export class BattleScene extends Phaser.Scene {
         this.floatText(t.root.x, this.headY(t), "Miss", COLORS.textMuted, 24);
         audio.play("miss");
         const dir = t.side === "merc" ? -1 : 1;
-        this.tweens.add({ targets: t.root, x: t.baseX + 24 * dir, duration: animDuration(110), yoyo: true });
+        this.tweens.add({
+          targets: t.root,
+          x: t.baseX + 24 * dir,
+          duration: animDuration(110),
+          yoyo: true,
+        });
         return this.wait(200);
       }
       case "heal": {
@@ -775,8 +916,28 @@ export class BattleScene extends Phaser.Scene {
         const t = this.units.get(ev.targetId);
         if (!t) return;
         const name = ev.status[0]?.toUpperCase() + ev.status.slice(1);
-        this.floatText(t.root.x, this.headY(t) + 30, name, STATUS_COLORS[ev.status] ?? COLORS.text, 18, 80);
-        audio.play(ev.status === "stun" ? "stun" : ev.status === "bleed" ? "bleed" : ev.status === "burn" ? "burn" : t.side === "merc" && ["empower", "shield", "regen", "evasive", "haste", "guard", "taunt"].includes(ev.status) ? "buff" : "debuff");
+        this.floatText(
+          t.root.x,
+          this.headY(t) + 30,
+          name,
+          STATUS_COLORS[ev.status] ?? COLORS.text,
+          18,
+          80,
+        );
+        audio.play(
+          ev.status === "stun"
+            ? "stun"
+            : ev.status === "bleed"
+              ? "bleed"
+              : ev.status === "burn"
+                ? "burn"
+                : t.side === "merc" &&
+                    ["empower", "shield", "regen", "evasive", "haste", "guard", "taunt"].includes(
+                      ev.status,
+                    )
+                  ? "buff"
+                  : "debuff",
+        );
         return this.wait(110);
       }
       case "resist": {
@@ -789,7 +950,13 @@ export class BattleScene extends Phaser.Scene {
         if (!t) return;
         t.hp -= ev.amount;
         this.drawHp(t);
-        this.floatText(t.root.x, this.headY(t), String(ev.amount), STATUS_COLORS[ev.status] ?? COLORS.danger, 24);
+        this.floatText(
+          t.root.x,
+          this.headY(t),
+          String(ev.amount),
+          STATUS_COLORS[ev.status] ?? COLORS.danger,
+          24,
+        );
         audio.play("dotTick");
         return this.wait(220);
       }
@@ -820,7 +987,13 @@ export class BattleScene extends Phaser.Scene {
         audio.play("enemyDeath");
         this.units.delete(ev.unitId);
         this.burst(s.root.x, s.root.y - 60, RAMPS.umbra[4]);
-        this.tweens.add({ targets: s.root, alpha: 0, y: s.root.y + 16, duration: animDuration(380), onComplete: () => s.root.destroy() });
+        this.tweens.add({
+          targets: s.root,
+          alpha: 0,
+          y: s.root.y + 16,
+          duration: animDuration(380),
+          onComplete: () => s.root.destroy(),
+        });
         return this.wait(300);
       }
       case "revived": {
@@ -839,7 +1012,13 @@ export class BattleScene extends Phaser.Scene {
       }
       case "lamp": {
         audio.play(ev.amount > 0 ? "lampRefuel" : "lampDrain");
-        this.floatText(140, 70, `Lamp ${ev.amount > 0 ? "+" : ""}${ev.amount}`, ev.amount > 0 ? COLORS.accentBright : COLORS.umbra, 20);
+        this.floatText(
+          140,
+          70,
+          `Lamp ${ev.amount > 0 ? "+" : ""}${ev.amount}`,
+          ev.amount > 0 ? COLORS.accentBright : COLORS.umbra,
+          20,
+        );
         return this.wait(150);
       }
       case "light":
@@ -852,7 +1031,13 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private skillSfx(unit: Unit | undefined, element: string, ranged: boolean, caster: boolean, hostile: boolean): Sfx {
+  private skillSfx(
+    unit: Unit | undefined,
+    element: string,
+    ranged: boolean,
+    caster: boolean,
+    hostile: boolean,
+  ): Sfx {
     if (!hostile) return element === "void" ? "castVoid" : "castRadiant";
     if (element === "radiant") return "castRadiant";
     if (element === "void" || element === "toxic") return "castVoid";
@@ -880,16 +1065,38 @@ export class BattleScene extends Phaser.Scene {
 
   private label(s: UnitSprite, text: string, color: string): void {
     const t = this.add
-      .text(s.root.x, this.headY(s) - 70, text, { fontFamily: FONT_FAMILY, fontSize: "20px", fontStyle: "700", color, stroke: "#05040a", strokeThickness: 5 })
+      .text(s.root.x, this.headY(s) - 70, text, {
+        fontFamily: FONT_FAMILY,
+        fontSize: "20px",
+        fontStyle: "700",
+        color,
+        stroke: "#05040a",
+        strokeThickness: 5,
+      })
       .setOrigin(0.5)
       .setDepth(210);
-    this.tweens.add({ targets: t, alpha: { from: 1, to: 0 }, delay: animDuration(500), duration: animDuration(300), onComplete: () => t.destroy() });
+    this.tweens.add({
+      targets: t,
+      alpha: { from: 1, to: 0 },
+      delay: animDuration(500),
+      duration: animDuration(300),
+      onComplete: () => t.destroy(),
+    });
   }
 
   private projectile(from: UnitSprite, to: UnitSprite, color: string): void {
     const y = from.root.y - 90;
-    const p = this.add.rectangle(from.root.x, y, 14, 4, hexNum(color)).setDepth(150).setBlendMode(Phaser.BlendModes.ADD);
-    this.tweens.add({ targets: p, x: to.root.x, y: to.root.y - 90, duration: animDuration(160), onComplete: () => p.destroy() });
+    const p = this.add
+      .rectangle(from.root.x, y, 14, 4, hexNum(color))
+      .setDepth(150)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({
+      targets: p,
+      x: to.root.x,
+      y: to.root.y - 90,
+      duration: animDuration(160),
+      onComplete: () => p.destroy(),
+    });
   }
 
   private burst(x: number, y: number, color: string): void {
@@ -910,7 +1117,12 @@ export class BattleScene extends Phaser.Scene {
   private showBanner(text: string, color: string): void {
     this.banner?.destroy();
     this.banner = this.add
-      .text(GAME_W / 2, 250, text, { ...TEXT.display, color, stroke: "#05040a", strokeThickness: 8 })
+      .text(GAME_W / 2, 250, text, {
+        ...TEXT.display,
+        color,
+        stroke: "#05040a",
+        strokeThickness: 8,
+      })
       .setOrigin(0.5)
       .setDepth(300)
       .setScale(0.6)
@@ -919,4 +1131,4 @@ export class BattleScene extends Phaser.Scene {
   }
 }
 
-export { canAct, Button };
+export { Button, canAct };

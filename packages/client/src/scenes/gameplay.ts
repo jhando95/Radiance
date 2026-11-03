@@ -7,13 +7,14 @@ import type * as Phaser from "phaser";
 import { flow } from "../app/flow";
 import { gameplayScenes, SCENES } from "../app/scenes";
 import { getSettings, onSettingsChange } from "../app/settings";
-import { audio, installAudioUnlock } from "../audio";
-import { uiSoundHooks } from "../ui/theme";
 import { goTo } from "../app/transitions";
+import { audio, installAudioUnlock } from "../audio";
 import { globals, sceneForPhase } from "../game/globals";
 import { hasOfflineSave, OfflineSession } from "../net/offline";
 import { defaultServerUrl, OnlineSession } from "../net/online";
+import { uiSoundHooks } from "../ui/theme";
 import { BattleScene } from "./BattleScene";
+import { CHARACTER_SCENE_KEY, CharacterScene } from "./CharacterScene";
 import { ExpeditionScene } from "./ExpeditionScene";
 import { LobbyScene } from "./LobbyScene";
 import { openPause } from "./PauseOverlay";
@@ -34,9 +35,16 @@ uiSoundHooks.click = () => audio.play("uiClick");
 uiSoundHooks.back = () => audio.play("uiBack");
 uiSoundHooks.error = () => audio.play("uiError");
 
-gameplayScenes.push(SquadScene, LobbyScene, ExpeditionScene, BattleScene, SummaryScene);
+gameplayScenes.push(
+  SquadScene,
+  LobbyScene,
+  ExpeditionScene,
+  BattleScene,
+  SummaryScene,
+  CharacterScene,
+);
 
-const CHARACTER_KEY = "character";
+const CHARACTER_KEY = CHARACTER_SCENE_KEY;
 
 function playerName(fallback = "Captain"): string {
   const name = getSettings().playerName?.trim();
@@ -102,7 +110,10 @@ flow.register({
     goTo(scene, SCENES.squad, data);
   },
   hostOnline(scene, name) {
-    globals.session = new OnlineSession(defaultServerUrl(), { kind: "create", name: name || playerName() });
+    globals.session = new OnlineSession(defaultServerUrl(), {
+      kind: "create",
+      name: name || playerName(),
+    });
     goTo(scene, SCENES.lobby);
   },
   joinOnline(scene, name, code) {

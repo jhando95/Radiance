@@ -73,7 +73,12 @@ export function sectionTitle(
   if (ruleTo !== undefined && ruleTo > x + t.width + 16) {
     const g = scene.add.graphics();
     g.fillStyle(hexNum(RAMPS.void[3]), 1);
-    g.fillRect(Math.round(x + t.width + 12), Math.round(y), Math.round(ruleTo - x - t.width - 12), 2);
+    g.fillRect(
+      Math.round(x + t.width + 12),
+      Math.round(y),
+      Math.round(ruleTo - x - t.width - 12),
+      2,
+    );
     parent.add(g);
   }
   return t;

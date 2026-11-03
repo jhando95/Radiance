@@ -1,7 +1,7 @@
 /** "◂ value ▸" option cycler row. Click the arrows, or Left/Right / Enter when focused. */
 import * as Phaser from "phaser";
-import { hexNum } from "../art/palette";
 import { TEX } from "../app/textures";
+import { hexNum } from "../art/palette";
 import { Row, type RowOptions } from "./Row";
 import { COLORS, DURATION, GRID, playUiSound, TEXT, UI_SCALE } from "./theme";
 
@@ -41,7 +41,10 @@ export class Selector<T> extends Row {
     const x0 = this.controlX;
     const x1 = this.rowWidth - GRID * 2;
     this.centerX = (x0 + x1) / 2;
-    this.left = scene.add.image(x0 + 8, -3, TEX.arrow).setScale(UI_SCALE).setFlipX(true);
+    this.left = scene.add
+      .image(x0 + 8, -3, TEX.arrow)
+      .setScale(UI_SCALE)
+      .setFlipX(true);
     this.right = scene.add.image(x1 - 8, -3, TEX.arrow).setScale(UI_SCALE);
     this.valueText = scene.add.text(this.centerX, -4, "", TEXT.number).setOrigin(0.5);
     this.pips = scene.add.graphics();

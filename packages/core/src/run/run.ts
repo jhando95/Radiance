@@ -84,11 +84,12 @@ export function createRun(opts: CreateRunOptions): RunState {
   if (!start) throw new Error("map has no start");
   run.currentNodeId = start.id;
   run.visited = [start.id];
-  // A small welcome kit so builds start diverging immediately.
+  // A small welcome kit so builds start diverging immediately: a trinket plus armor or a
+  // lamp, so it's always usable by someone whatever the squad.
   const loot = stream(run, "loot");
-  for (let i = 0; i < 2; i++) {
+  for (const slot of ["trinket", nextFloat(loot) < 0.5 ? "armor" : "lamp"] as const) {
     run.stash.push(
-      rollItem(loot, run.nextUid++, { ilvl: 1, rarityBonus: 0, minRarity: "uncommon" }),
+      rollItem(loot, run.nextUid++, { ilvl: 1, rarityBonus: 0, minRarity: "uncommon", slot }),
     );
   }
   return run;

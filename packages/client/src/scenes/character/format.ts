@@ -205,7 +205,8 @@ export function skillTooltip(merc: Merc, skillId: string, footer?: string): Tool
     color: skill.element === "physical" ? COLORS.textMuted : ELEMENT_COLORS[skill.element],
     size: "small",
   });
-  for (const p of perks) lines.push({ text: `Enhanced by ${p.name}`, color: PERK_GOLD, size: "small" });
+  for (const p of perks)
+    lines.push({ text: `Enhanced by ${p.name}`, color: PERK_GOLD, size: "small" });
   if (flavor) lines.push({ text: flavor, color: COLORS.textMuted, size: "small" });
   return {
     title: t.name,
@@ -262,7 +263,11 @@ export function perkTooltip(perk: PerkDef, source: PerkSource = "chosen"): Toolt
     lines.push({ text: `Modifies: ${names}`, color: PERK_GOLD, size: "small" });
   }
   const src =
-    source === "relic" ? "From a relic item" : source === "origin" ? "From origin" : "Level-up perk";
+    source === "relic"
+      ? "From a relic item"
+      : source === "origin"
+        ? "From origin"
+        : "Level-up perk";
   return {
     title: perk.name,
     titleColor: perkColor(perk, source),

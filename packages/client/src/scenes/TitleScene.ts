@@ -10,11 +10,11 @@ import { getSettings, PLAYER_NAME_MAX, updateSettings } from "../app/settings";
 import { hasTexture, TEX } from "../app/textures";
 import { goTo } from "../app/transitions";
 import { VERSION } from "../app/version";
-import { type MenuEntry, createMenuList } from "../ui/MenuList";
+import { createMenuList, type MenuEntry } from "../ui/MenuList";
 import { promptDialog } from "../ui/Modal";
 import { addBackdrop } from "../ui/screen";
-import { COLOR_NUM, COLORS, GAME_H, GAME_W, GRID, TEXT } from "../ui/theme";
 import { toast } from "../ui/Toast";
+import { COLOR_NUM, COLORS, GAME_H, GAME_W, GRID, TEXT } from "../ui/theme";
 
 const NAME_ALLOW = /[\p{L}\p{N} _\-'.]/u;
 const CODE_ALLOW = /[A-Z0-9]/;
@@ -149,7 +149,10 @@ export class TitleScene extends Phaser.Scene {
     const h = flow.handlers;
     const entries: MenuEntry[] = [];
     if (h?.resume && (h.canResume?.() ?? true)) {
-      entries.push({ label: "Resume Expedition", onSelect: () => this.run(() => h.resume?.(this)) });
+      entries.push({
+        label: "Resume Expedition",
+        onSelect: () => this.run(() => h.resume?.(this)),
+      });
     }
     entries.push(
       { label: "New Expedition (Solo)", onSelect: () => this.startSolo() },
@@ -194,13 +197,19 @@ export class TitleScene extends Phaser.Scene {
 
   private startSolo(): void {
     const h = flow.handlers;
-    if (!h) return toast(this, "Coming soon");
+    if (!h) {
+      toast(this, "Coming soon");
+      return;
+    }
     this.run(() => h.startSolo(this));
   }
 
   private async hostCoop(): Promise<void> {
     const h = flow.handlers;
-    if (!h) return toast(this, "Coming soon");
+    if (!h) {
+      toast(this, "Coming soon");
+      return;
+    }
     const values = await promptDialog(this, {
       title: "Host Co-op",
       body: "Open a room and share its code with up to three friends.",
@@ -214,7 +223,10 @@ export class TitleScene extends Phaser.Scene {
 
   private async joinCoop(): Promise<void> {
     const h = flow.handlers;
-    if (!h) return toast(this, "Coming soon");
+    if (!h) {
+      toast(this, "Coming soon");
+      return;
+    }
     const values = await promptDialog(this, {
       title: "Join Co-op",
       body: "Enter the room code your host shared.",

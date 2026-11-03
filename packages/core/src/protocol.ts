@@ -5,8 +5,7 @@
 import { z } from "zod";
 import { APPEARANCE_OPTIONS, DISCIPLINE_IDS, ORIGIN_IDS } from "./content";
 import type { RunView } from "./run/view";
-import type { PlayerId, RunEvent } from "./types";
-import { EQUIP_SLOTS } from "./types";
+import type { EQUIP_SLOTS, PlayerId, RunEvent } from "./types";
 
 export const PROTOCOL_VERSION = 2;
 
@@ -39,7 +38,13 @@ export const mercSetupSchema = z.object({
   skills: z.array(id).max(6),
 });
 
-const equipSlot = z.enum(["weapon", "armor", "lamp", "trinket1", "trinket2"] satisfies typeof EQUIP_SLOTS[number][]);
+const equipSlot = z.enum([
+  "weapon",
+  "armor",
+  "lamp",
+  "trinket1",
+  "trinket2",
+] satisfies (typeof EQUIP_SLOTS)[number][]);
 
 export const runCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("vote"), nodeId: id }),

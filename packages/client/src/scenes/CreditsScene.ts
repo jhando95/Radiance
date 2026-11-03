@@ -141,7 +141,14 @@ export class CreditsScene extends Phaser.Scene {
             .setTint(COLOR_NUM.accent)
             .setBlendMode(Phaser.BlendModes.ADD)
             .setAlpha(0.4);
-          this.tweens.add({ targets: glow, alpha: 0.25, duration: 160, yoyo: true, repeat: -1, repeatDelay: 700 });
+          this.tweens.add({
+            targets: glow,
+            alpha: 0.25,
+            duration: 160,
+            yoyo: true,
+            repeat: -1,
+            repeatDelay: 700,
+          });
           this.roll.add([glow, img]);
           y += 72;
           break;
@@ -153,7 +160,7 @@ export class CreditsScene extends Phaser.Scene {
     }
     this.rollH = y;
 
-    addKeyHint(this, "Esc  back     hold Space  faster").setDepth(20);
+    addKeyHint(this, "Esc  back   ·   hold Space  faster").setDepth(20);
     const kb = this.input.keyboard;
     this.fastKeys = kb ? [kb.addKey("SPACE"), kb.addKey("DOWN")] : [];
     this.input.keyboard?.on("keydown", (e: KeyboardEvent) => {

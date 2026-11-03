@@ -64,10 +64,7 @@ export function addBackdrop(scene: Phaser.Scene, opts: BackdropOptions = {}): Ba
 
   if (opts.dim && opts.dim > 0) {
     layers.push(
-      scene.add
-        .rectangle(0, 0, GAME_W, GAME_H, COLOR_NUM.ink, opts.dim)
-        .setOrigin(0)
-        .setDepth(-80),
+      scene.add.rectangle(0, 0, GAME_W, GAME_H, COLOR_NUM.ink, opts.dim).setOrigin(0).setDepth(-80),
     );
   }
 
@@ -123,9 +120,7 @@ export function addHeader(scene: Phaser.Scene, title: string, subtitle?: string)
   const parts: Phaser.GameObjects.GameObject[] = [icon, text];
   if (subtitle) {
     parts.push(
-      scene.add
-        .text(x + 48 + text.width + GRID * 3, y + 6, subtitle, TEXT.small)
-        .setOrigin(0, 0.5),
+      scene.add.text(x + 48 + text.width + GRID * 3, y + 6, subtitle, TEXT.small).setOrigin(0, 0.5),
     );
   }
   parts.push(createDivider(scene, x, y + 34, GAME_W - x * 2, 0x34305a));

@@ -11,7 +11,8 @@ const last = <T extends ServerMessage["t"]>(c: { inbox: ServerMessage[] }, t: T)
   [...c.inbox].reverse().find((m) => m.t === t) as Extract<ServerMessage, { t: T }> | undefined;
 
 const v = PROTOCOL_VERSION;
-const merc = (d: keyof typeof CLASS_PRESETS) => CLASS_PRESETS[d] as NonNullable<(typeof CLASS_PRESETS)[string]>;
+const merc = (d: keyof typeof CLASS_PRESETS) =>
+  CLASS_PRESETS[d] as NonNullable<(typeof CLASS_PRESETS)[string]>;
 
 describe("RoomManager", () => {
   let now = 0;

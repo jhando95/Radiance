@@ -66,7 +66,10 @@ export class RoomManager {
   handle(conn: Connection, msg: ClientMessage): void {
     switch (msg.t) {
       case "createRoom": {
-        if (conn.roomCode) return this.fail(conn, "Already in a room.");
+        if (conn.roomCode) {
+          this.fail(conn, "Already in a room.");
+          return;
+        }
         let code = this.deps.makeCode();
         while (this.rooms.has(code)) code = this.deps.makeCode();
         const room: Room = {
@@ -84,11 +87,23 @@ export class RoomManager {
         return;
       }
       case "joinRoom": {
-        if (conn.roomCode) return this.fail(conn, "Already in a room.");
+        if (conn.roomCode) {
+          this.fail(conn, "Already in a room.");
+          return;
+        }
         const room = this.rooms.get(msg.code);
-        if (!room) return this.fail(conn, "Room not found.");
-        if (room.run) return this.fail(conn, "That expedition has already left.");
-        if (room.members.length >= MAX_PLAYERS) return this.fail(conn, "Room is full.");
+        if (!room) {
+          this.fail(conn, "Room not found.");
+          return;
+        }
+        if (room.run) {
+          this.fail(conn, "That expedition has already left.");
+          return;
+        }
+        if (room.members.length >= MAX_PLAYERS) {
+          this.fail(conn, "Room is full.");
+          return;
+        }
         this.addMember(room, conn, msg.name);
         this.resetMismatchedSquads(room);
         this.broadcastLobby(room);
@@ -97,7 +112,10 @@ export class RoomManager {
       case "rejoin": {
         const room = this.rooms.get(msg.code);
         const member = room?.members.find((m) => m.token === msg.token);
-        if (!room || !member) return this.fail(conn, "Could not rejoin that room.");
+        if (!room || !member) {
+          this.fail(conn, "Could not rejoin that room.");
+          return;
+        }
         if (member.conn && member.conn !== conn) {
           member.conn.peer.send({ t: "error", message: "Signed in from another tab." });
           member.conn.roomCode = undefined;
@@ -114,27 +132,48 @@ export class RoomManager {
       }
       case "submitSquad": {
         const { room, member } = this.context(conn);
-        if (!room || !member) return this.fail(conn, "Not in a room.");
-        if (room.run) return this.fail(conn, "The expedition has already left.");
+        if (!room || !member) {
+          this.fail(conn, "Not in a room.");
+          return;
+        }
+        if (room.run) {
+          this.fail(conn, "The expedition has already left.");
+          return;
+        }
         const slots = this.slotsOf(room, member);
-        if (msg.mercs.length !== slots) return this.fail(conn, `Create exactly ${slots} mercenaries.`);
+        if (msg.mercs.length !== slots) {
+          this.fail(conn, `Create exactly ${slots} mercenaries.`);
+          return;
+        }
         member.squad = msg.mercs as MercSetup[];
         this.broadcastLobby(room);
         return;
       }
       case "startGame": {
         const { room, member } = this.context(conn);
-        if (!room || !member) return this.fail(conn, "Not in a room.");
-        if (member.id !== room.hostId) return this.fail(conn, "Only the host can start.");
-        if (room.run) return this.fail(conn, "Already started.");
+        if (!room || !member) {
+          this.fail(conn, "Not in a room.");
+          return;
+        }
+        if (member.id !== room.hostId) {
+          this.fail(conn, "Only the host can start.");
+          return;
+        }
+        if (room.run) {
+          this.fail(conn, "Already started.");
+          return;
+        }
         const notReady = room.members.filter((m) => m.squad?.length !== this.slotsOf(room, m));
         if (notReady.length) {
-          return this.fail(conn, `Waiting for ${notReady.map((m) => m.name).join(", ")}.`);
+          this.fail(conn, `Waiting for ${notReady.map((m) => m.name).join(", ")}.`);
+          return;
         }
         room.run = createRun({
           seed: this.deps.makeSeed(),
           players: room.members.map(({ id, name }) => ({ id, name })),
-          mercs: room.members.flatMap((m) => (m.squad ?? []).map((setup) => ({ ownerId: m.id, setup }))),
+          mercs: room.members.flatMap((m) =>
+            (m.squad ?? []).map((setup) => ({ ownerId: m.id, setup })),
+          ),
         });
         room.log = [];
         this.broadcastLobby(room);
@@ -143,9 +182,15 @@ export class RoomManager {
       }
       case "command": {
         const { room, member } = this.context(conn);
-        if (!room?.run || !member) return this.fail(conn, "No expedition in progress.");
+        if (!room?.run || !member) {
+          this.fail(conn, "No expedition in progress.");
+          return;
+        }
         const result = applyRunCommand(room.run, member.id, msg.command);
-        if (!result.ok) return this.fail(conn, result.error);
+        if (!result.ok) {
+          this.fail(conn, result.error);
+          return;
+        }
         room.run = result.state;
         room.log.push({ playerId: member.id, command: msg.command });
         for (const m of room.members) this.sendState(room, m, result.events);

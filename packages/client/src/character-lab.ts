@@ -25,7 +25,11 @@ import {
 import * as Phaser from "phaser";
 import { ensureUiTextures, iconTexture, mapBackdropTexture } from "./app/textures";
 import { Emitter, type GameSession, type SessionEvent } from "./net/session";
-import { CHARACTER_SCENE_KEY, CharacterScene, type CharacterSceneData } from "./scenes/CharacterScene";
+import {
+  CHARACTER_SCENE_KEY,
+  CharacterScene,
+  type CharacterSceneData,
+} from "./scenes/CharacterScene";
 import { BACKDROP_SCALE, COLORS, FONT_FAMILY, GAME_H, GAME_W, TEXT } from "./ui/theme";
 
 const params = new URLSearchParams(window.location.search);
@@ -169,9 +173,7 @@ class LabMapScene extends Phaser.Scene {
 
   create(): void {
     ensureUiTextures(this);
-    this.add
-      .image(GAME_W / 2, GAME_H / 2, mapBackdropTexture(this, 3))
-      .setScale(BACKDROP_SCALE);
+    this.add.image(GAME_W / 2, GAME_H / 2, mapBackdropTexture(this, 3)).setScale(BACKDROP_SCALE);
     this.add.image(GAME_W / 2 - 150, GAME_H / 2, iconTexture(this, "ui_lamp")).setScale(4);
     this.add
       .text(GAME_W / 2 - 110, GAME_H / 2, "Expedition map (lab) — press C", {

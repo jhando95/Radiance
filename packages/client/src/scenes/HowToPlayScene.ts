@@ -3,15 +3,15 @@
  * builds & loot, co-op. Left/Right (or the buttons) change page, Esc goes back.
  */
 import * as Phaser from "phaser";
-import { hexNum, RAMPS, RARITY_COLORS } from "../art/palette";
 import { SCENES } from "../app/scenes";
 import { enemyTexture, iconTexture, mercTexture, TEX } from "../app/textures";
+import { hexNum, RAMPS, RARITY_COLORS } from "../art/palette";
 import type { Rarity } from "../ui/artAdapter";
 import { Button } from "../ui/Button";
 import { isTypingInDom } from "../ui/focus";
 import { createPanel } from "../ui/Panel";
 import { addBackdrop, addHeader } from "../ui/screen";
-import { COLOR_NUM, COLORS, DURATION, GAME_H, GAME_W, GRID, playUiSound, TEXT } from "../ui/theme";
+import { COLOR_NUM, COLORS, DURATION, GAME_H, GAME_W, playUiSound, TEXT } from "../ui/theme";
 import { leaveSubScreen, type SubScreenData } from "./SettingsScene";
 
 type C = Phaser.GameObjects.Container;
@@ -274,7 +274,9 @@ const PAGES: Page[] = [
         ["“It never quite goes out.”", COLORS.textMuted],
       ];
       lines.forEach(([t, col], i) => {
-        c.add(scene.add.text(tx + 20, 124 + i * 28, t, { ...TEXT.body, fontSize: "18px", color: col }));
+        c.add(
+          scene.add.text(tx + 20, 124 + i * 28, t, { ...TEXT.body, fontSize: "18px", color: col }),
+        );
       });
     },
   },
@@ -358,7 +360,11 @@ const PAGES: Page[] = [
       c.add(scene.add.image(mx + 400, 236, iconTexture(scene, "item_trinket_coin")).setScale(3));
       c.add(
         scene.add
-          .text(mx + 400, 272, "SHARED STASH", { ...TEXT.tiny, color: COLORS.info, letterSpacing: 2 })
+          .text(mx + 400, 272, "SHARED STASH", {
+            ...TEXT.tiny,
+            color: COLORS.info,
+            letterSpacing: 2,
+          })
           .setOrigin(0.5),
       );
     },
@@ -410,9 +416,7 @@ function pips(
   color: string,
   text: string,
 ) {
-  c.add(
-    scene.add.text(x, y, text, { ...TEXT.tiny, fontStyle: "700", color }).setOrigin(0, 0.5),
-  );
+  c.add(scene.add.text(x, y, text, { ...TEXT.tiny, fontStyle: "700", color }).setOrigin(0, 0.5));
   const g = scene.add.graphics();
   on.forEach((v, i) => {
     const px = x + 40 + i * 22;
@@ -448,7 +452,9 @@ function healthBar(scene: Phaser.Scene, c: C, x: number, y: number, frac: number
 function lampMeter(scene: Phaser.Scene, c: C, x: number, y: number, frac: number) {
   c.add(scene.add.image(x + 16, y + 12, iconTexture(scene, "ui_lamp")).setScale(2));
   c.add(
-    scene.add.text(x + 40, y + 12, "LAMP", { ...TEXT.tiny, fontStyle: "700", color: COLORS.accent }).setOrigin(0, 0.5),
+    scene.add
+      .text(x + 40, y + 12, "LAMP", { ...TEXT.tiny, fontStyle: "700", color: COLORS.accent })
+      .setOrigin(0, 0.5),
   );
   const g = scene.add.graphics();
   const bx = x + 88;
@@ -517,9 +523,7 @@ export class HowToPlayScene extends Phaser.Scene {
       onClick: () => this.go(1),
     });
     this.dots = this.add.graphics();
-    this.pageLabel = this.add
-      .text(GAME_W / 2, footY + 18, "", { ...TEXT.tiny })
-      .setOrigin(0.5);
+    this.pageLabel = this.add.text(GAME_W / 2, footY + 18, "", { ...TEXT.tiny }).setOrigin(0.5);
 
     this.input.keyboard?.on("keydown", (e: KeyboardEvent) => {
       if (isTypingInDom()) return;
@@ -564,7 +568,9 @@ export class HowToPlayScene extends Phaser.Scene {
     // Illustration banner.
     const bx = (GAME_W - BANNER_W) / 2;
     const by = 104;
-    c.add(createPanel(this, bx, by, BANNER_W, BANNER_H, { variant: "inset", originX: 0, originY: 0 }));
+    c.add(
+      createPanel(this, bx, by, BANNER_W, BANNER_H, { variant: "inset", originX: 0, originY: 0 }),
+    );
     const art = this.add.container(bx, by);
     c.add(art);
     page.draw(this, art, BANNER_W, BANNER_H);

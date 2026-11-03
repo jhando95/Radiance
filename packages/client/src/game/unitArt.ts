@@ -1,6 +1,12 @@
 import type { Merc, Unit } from "@radiance/core";
 import type * as Phaser from "phaser";
-import { drawEnemy, drawEnemyPortrait, type EnemyArtId, type EnemyPose, enemyFrame } from "../art/enemies";
+import {
+  drawEnemy,
+  drawEnemyPortrait,
+  type EnemyArtId,
+  type EnemyPose,
+  enemyFrame,
+} from "../art/enemies";
 import { ensureMercPortrait, ensureMercTexture, lookFromMerc } from "../art/look";
 import { MERC_FRAME, type MercPose } from "../art/mercs";
 
@@ -25,7 +31,12 @@ export function enemyPose(pose: UnitPose): EnemyPose {
 }
 
 /** Texture key for a combat unit in a pose. Mercs use their persistent build for the look. */
-export function unitTexture(scene: Phaser.Scene, unit: Unit, mercs: readonly Merc[], pose: UnitPose): string {
+export function unitTexture(
+  scene: Phaser.Scene,
+  unit: Unit,
+  mercs: readonly Merc[],
+  pose: UnitPose,
+): string {
   if (unit.side === "merc") {
     const merc = mercs.find((m) => m.id === unit.id);
     if (merc) return ensureMercTexture(scene, lookFromMerc(merc), pose as MercPose);
@@ -35,7 +46,11 @@ export function unitTexture(scene: Phaser.Scene, unit: Unit, mercs: readonly Mer
   return add(scene, `enemy.${id}.${p}`, () => drawEnemy(id, p));
 }
 
-export function unitPortrait(scene: Phaser.Scene, unit: Pick<Unit, "id" | "side" | "defId">, mercs: readonly Merc[]): string {
+export function unitPortrait(
+  scene: Phaser.Scene,
+  unit: Pick<Unit, "id" | "side" | "defId">,
+  mercs: readonly Merc[],
+): string {
   if (unit.side === "merc") {
     const merc = mercs.find((m) => m.id === unit.id);
     if (merc) return ensureMercPortrait(scene, lookFromMerc(merc));

@@ -1,9 +1,9 @@
 import type { MercSetup } from "@radiance/core";
 import * as Phaser from "phaser";
-import { audio } from "../audio";
 import { SCENES } from "../app/scenes";
 import { iconTexture, mapBackdropTexture } from "../app/textures";
 import { goTo } from "../app/transitions";
+import { audio } from "../audio";
 import { globals, sceneForPhase } from "../game/globals";
 import type { GameSession, LobbyInfo, SessionEvent } from "../net/session";
 import { Button } from "../ui/Button";
@@ -52,7 +52,14 @@ export class LobbyScene extends Phaser.Scene {
   private leave(target: "expedition" | "combat" | "summary"): void {
     if (this.leaving) return;
     this.leaving = true;
-    goTo(this, target === "combat" ? SCENES.combat : target === "summary" ? SCENES.summary : SCENES.expedition);
+    goTo(
+      this,
+      target === "combat"
+        ? SCENES.combat
+        : target === "summary"
+          ? SCENES.summary
+          : SCENES.expedition,
+    );
   }
 
   private backToTitle(): void {
@@ -69,30 +76,67 @@ export class LobbyScene extends Phaser.Scene {
     const cx = GAME_W / 2;
     this.layer.add(this.add.text(cx, 60, "CO-OP EXPEDITION", TEXT.title).setOrigin(0.5));
     if (!lobby) {
-      this.layer.add(this.add.text(cx, GAME_H / 2, "Connecting to the relay…", TEXT.bodyDim).setOrigin(0.5));
-      this.layer.add(new Button(this, cx, GAME_H - 80, { label: "Back", kind: "secondary", onClick: () => this.backToTitle() }));
+      this.layer.add(
+        this.add.text(cx, GAME_H / 2, "Connecting to the relay…", TEXT.bodyDim).setOrigin(0.5),
+      );
+      this.layer.add(
+        new Button(this, cx, GAME_H - 80, {
+          label: "Back",
+          kind: "secondary",
+          onClick: () => this.backToTitle(),
+        }),
+      );
       return;
     }
-    this.layer.add(this.add.text(cx, 120, "Share this code with your crew", TEXT.bodyDim).setOrigin(0.5));
-    const code = this.add.text(cx, 170, lobby.code, { ...TEXT.display, fontSize: "56px", letterSpacing: 12 } as Phaser.Types.GameObjects.Text.TextStyle).setOrigin(0.5);
+    this.layer.add(
+      this.add.text(cx, 120, "Share this code with your crew", TEXT.bodyDim).setOrigin(0.5),
+    );
+    const code = this.add
+      .text(cx, 170, lobby.code, {
+        ...TEXT.display,
+        fontSize: "56px",
+        letterSpacing: 12,
+      } as Phaser.Types.GameObjects.Text.TextStyle)
+      .setOrigin(0.5);
     this.layer.add(code);
 
     const me = lobby.players.find((p) => p.id === this.session.playerId);
     lobby.players.forEach((p, i) => {
       const y = 250 + i * 64;
-      const row = this.add.rectangle(cx, y, 560, 56, 0x0e0c16, 0.95).setStrokeStyle(2, p.id === this.session.playerId ? COLOR_NUM.accent : 0x34305a);
-      const icon = this.add.image(cx - 250, y, iconTexture(this, p.id === lobby.hostId ? "ui_crown" : "ui_player")).setScale(2);
-      const name = this.add.text(cx - 220, y - 12, `${p.name}${p.id === this.session.playerId ? " (you)" : ""}`, TEXT.subheading);
-      const info = this.add.text(cx + 260, y - 10, `${p.slots} merc${p.slots === 1 ? "" : "s"} · ${p.ready ? "READY" : p.connected ? "building squad…" : "offline"}`, {
-        ...TEXT.small,
-        color: p.ready ? COLORS.success : COLORS.textDim,
-      }).setOrigin(1, 0);
+      const row = this.add
+        .rectangle(cx, y, 560, 56, 0x0e0c16, 0.95)
+        .setStrokeStyle(2, p.id === this.session.playerId ? COLOR_NUM.accent : 0x34305a);
+      const icon = this.add
+        .image(cx - 250, y, iconTexture(this, p.id === lobby.hostId ? "ui_crown" : "ui_player"))
+        .setScale(2);
+      const name = this.add.text(
+        cx - 220,
+        y - 12,
+        `${p.name}${p.id === this.session.playerId ? " (you)" : ""}`,
+        TEXT.subheading,
+      );
+      const info = this.add
+        .text(
+          cx + 260,
+          y - 10,
+          `${p.slots} merc${p.slots === 1 ? "" : "s"} · ${p.ready ? "READY" : p.connected ? "building squad…" : "offline"}`,
+          {
+            ...TEXT.small,
+            color: p.ready ? COLORS.success : COLORS.textDim,
+          },
+        )
+        .setOrigin(1, 0);
       this.layer.add([row, icon, name, info]);
     });
     const slots = me?.slots ?? 1;
     this.layer.add(
       this.add
-        .text(cx, 270 + lobby.players.length * 64, `The squad is always four mercenaries, split between players. You command ${slots}.`, TEXT.small)
+        .text(
+          cx,
+          270 + lobby.players.length * 64,
+          `The squad is always four mercenaries, split between players. You command ${slots}.`,
+          TEXT.small,
+        )
         .setOrigin(0.5),
     );
     const build = new Button(this, cx - 160, GAME_H - 110, {
@@ -121,7 +165,13 @@ export class LobbyScene extends Phaser.Scene {
       disabled: !isHost || !allReady,
       onClick: () => this.session.startGame(),
     });
-    const back = new Button(this, cx, GAME_H - 44, { label: "Leave", width: 200, height: 40, kind: "danger", onClick: () => this.backToTitle() });
+    const back = new Button(this, cx, GAME_H - 44, {
+      label: "Leave",
+      width: 200,
+      height: 40,
+      kind: "danger",
+      onClick: () => this.backToTitle(),
+    });
     this.layer.add([build, depart, back]);
   }
 }

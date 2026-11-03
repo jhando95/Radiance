@@ -32,6 +32,7 @@ simulator and replays all run the same code.
 ## 2. Core engine
 
 ### 2.1 State, commands, events
+
 - **`RunState`** is the whole expedition: players, mercs (formation order), map, current node,
   votes, lamp charge, ore, stash, the current `CombatState` (if any), reward, and RNG streams. It is
   plain JSON.
@@ -43,6 +44,7 @@ simulator and replays all run the same code.
   what happened, in order. The client animates them, then renders the new view.
 
 ### 2.2 Combat flow (`combat/flow.ts`)
+
 `advance()` runs the turn loop. It builds a round's initiative queue (speed + d4), pops units, and
 applies start-of-turn effects (DoTs, regen, perk triggers, stun). **Enemy turns resolve immediately**
 via the AI. The loop **stops when a merc must act**, which waits for its owner's `useSkill`. After a
@@ -53,6 +55,7 @@ every enemy action part of the event stream of the command that led to it.
 targets, and the engine uses them to reject illegal commands.
 
 ### 2.3 Determinism rules
+
 1. **No `Math.random()`.** Use `stream(run, name)`, a seeded sfc32 generator stored in the state.
 2. **One stream per purpose** (`map`, `loot`, `combat`, `ai`, `nodes`, `vote`, `perks:<mercId>`),
    so changing one system doesn't reshuffle every other system's rolls.
@@ -61,6 +64,7 @@ targets, and the engine uses them to reject illegal commands.
    expedition exactly. A test plays a whole bot expedition and checks this.
 
 ### 2.4 Content as data
+
 Skills, perks, items, affixes, enemies and encounters are typed data built from small vocabularies:
 **skill effects** (`damage`, `heal`, `status`, `move`, `cleanse`, `beacon`, `lampCharge`, `cooldowns`,
 `guard`), **perk mods** (flat stats), **skill mods** (per-skill cooldown, damage, extra effects),
@@ -69,11 +73,13 @@ Tooltips are generated from the same data (`describe.ts`), so text can't drift f
 mechanics go in as new effect kinds, never as `if (skill.id === …)`.
 
 ### 2.5 Hidden information
+
 `viewFor(run, viewer)` strips RNG state and **masks unlit enemies' HP and cooldowns** (darkness is a
 gameplay mechanic, so the client must not even receive that data). The server only ever sends
 views.
 
 ## 3. Networking
+
 See [ADR 0002](adr/0002-networking-model.md). In short: an authoritative Node server, the zod-validated
 JSON protocol (`PROTOCOL_VERSION` 2), room codes, reconnect tokens and redacted snapshots after every
 accepted command. The **lobby** collects each player's mercenaries (the squad is always 4, split by
@@ -81,6 +87,7 @@ accepted command. The **lobby** collects each player's mercenaries (the squad is
 can command it.
 
 ## 4. Client
+
 - **Scenes:** Boot → Title → (Lobby) → Squad builder → Expedition ⇄ Combat → Summary, plus overlay
   scenes (Character sheet, Pause, Settings, How to Play, Credits, toasts). Gameplay scenes are
   registered in `scenes/gameplay.ts`, which also implements the title-menu flow.
@@ -97,18 +104,20 @@ can command it.
   music per mood. Darkness closes filters and swells drones.
 
 ## 5. Tooling
-| Concern | Tool |
-|---|---|
-| Monorepo | pnpm workspaces (`packages/*`) |
-| Language | TypeScript 7 (strict, `noUncheckedIndexedAccess`) |
-| Client | Phaser 4 + Vite |
-| Server | Node + `ws`, `tsx` in dev, esbuild bundle for prod |
-| Tests | Vitest (core rules, full bot expeditions, replay, protocol, rooms) |
-| Lint / format | Biome |
-| Balance | `pnpm sim -- --runs 200`: bots play whole expeditions per squad composition |
-| CI | GitHub Actions: lint → typecheck → test → build → sim smoke test |
+
+| Concern       | Tool                                                                        |
+| ------------- | --------------------------------------------------------------------------- |
+| Monorepo      | pnpm workspaces (`packages/*`)                                              |
+| Language      | TypeScript 7 (strict, `noUncheckedIndexedAccess`)                           |
+| Client        | Phaser 4 + Vite                                                             |
+| Server        | Node + `ws`, `tsx` in dev, esbuild bundle for prod                          |
+| Tests         | Vitest (core rules, full bot expeditions, replay, protocol, rooms)          |
+| Lint / format | Biome                                                                       |
+| Balance       | `pnpm sim -- --runs 200`: bots play whole expeditions per squad composition |
+| CI            | GitHub Actions: lint → typecheck → test → build → sim smoke test            |
 
 ## 6. Directory map
+
 ```
 packages/core/src
   content/      skills, disciplines+origins, perks, items+affixes, enemies+encounters

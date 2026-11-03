@@ -3,9 +3,9 @@
  * when it is running (so toasts survive scene changes), else in the calling scene.
  */
 import * as Phaser from "phaser";
-import { hexNum } from "../art/palette";
 import { SCENES } from "../app/scenes";
 import { iconTexture } from "../app/textures";
+import { hexNum } from "../art/palette";
 import { createPanel } from "./Panel";
 import { COLORS, DEPTH, DURATION, GAME_W, GRID, playUiSound, TEXT } from "./theme";
 
@@ -75,14 +75,19 @@ export class ToastLayer {
         c.y = target - 16;
         this.scene.tweens.add({ targets: c, y: target, duration: DURATION.slow, ease: "Back.out" });
       } else {
-        this.scene.tweens.add({ targets: c, y: target, duration: DURATION.normal, ease: "Quad.out" });
+        this.scene.tweens.add({
+          targets: c,
+          y: target,
+          duration: DURATION.normal,
+          ease: "Quad.out",
+        });
       }
       y += h + GAP;
     }
   }
 
   private dismiss(c: Phaser.GameObjects.Container | undefined): void {
-    if (!c || !c.active || c.getData("leaving")) return;
+    if (!c?.active || c.getData("leaving")) return;
     c.setData("leaving", true);
     this.items = this.items.filter((x) => x !== c);
     c.disableInteractive();

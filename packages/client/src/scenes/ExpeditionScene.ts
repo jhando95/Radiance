@@ -11,17 +11,17 @@ import {
   type RunView,
 } from "@radiance/core";
 import * as Phaser from "phaser";
-import { hexNum, RAMPS, RARITY_COLORS } from "../art/palette";
-import { audio } from "../audio";
 import { SCENES } from "../app/scenes";
 import { iconTexture, mapBackdropTexture } from "../app/textures";
 import { goTo } from "../app/transitions";
+import { hexNum, RAMPS, RARITY_COLORS } from "../art/palette";
+import { audio } from "../audio";
 import { globals, sceneForPhase } from "../game/globals";
 import { unitPortrait } from "../game/unitArt";
 import type { GameSession, SessionEvent } from "../net/session";
 import { Button } from "../ui/Button";
-import { attachTooltip } from "../ui/Tooltip";
 import { toast } from "../ui/Toast";
+import { attachTooltip } from "../ui/Tooltip";
 import { COLOR_NUM, COLORS, FONT_FAMILY, GAME_H, GAME_W, TEXT } from "../ui/theme";
 
 const NODE_NAMES: Record<string, string> = {
@@ -75,7 +75,14 @@ export class ExpeditionScene extends Phaser.Scene {
 
   create(): void {
     const bg = this.add.image(GAME_W / 2, GAME_H / 2, mapBackdropTexture(this, 7)).setScale(4);
-    this.tweens.add({ targets: bg, x: GAME_W / 2 - 10, duration: 14000, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+    this.tweens.add({
+      targets: bg,
+      x: GAME_W / 2 - 10,
+      duration: 14000,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.inOut",
+    });
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x05040a, 0.45).setOrigin(0);
     this.layer = this.add.container(0, 0);
     this.overlay = this.add.container(0, 0).setDepth(500);
@@ -133,16 +140,28 @@ export class ExpeditionScene extends Phaser.Scene {
     const node = view.nodes.find((n) => n.id === view.currentNodeId);
     const biome = BIOME_NAMES[node?.biome ?? ""] ?? "";
     this.layer.add(
-      this.add.text(GAME_W / 2 + 40, 18, `${biome.toUpperCase()} · DEPTH ${node?.row ?? 0}/${MAP_ROWS - 1}`, {
-        ...TEXT.small,
-        color: COLORS.textDim,
-      }).setOrigin(0.5, 0),
+      this.add
+        .text(
+          GAME_W / 2 + 40,
+          18,
+          `${biome.toUpperCase()} · DEPTH ${node?.row ?? 0}/${MAP_ROWS - 1}`,
+          {
+            ...TEXT.small,
+            color: COLORS.textDim,
+          },
+        )
+        .setOrigin(0.5, 0),
     );
     // Lamp charge
     const x = GAME_W - 300;
     const lampIcon = this.add.image(x, 30, iconTexture(this, "ui_lamp")).setScale(2);
-    const barBg = this.add.rectangle(x + 20, 30, 150, 14, 0x05040a).setOrigin(0, 0.5).setStrokeStyle(2, 0x34305a);
-    const bar = this.add.rectangle(x + 22, 30, (146 * view.lampCharge) / 100, 10, hexNum(RAMPS.lamp[3])).setOrigin(0, 0.5);
+    const barBg = this.add
+      .rectangle(x + 20, 30, 150, 14, 0x05040a)
+      .setOrigin(0, 0.5)
+      .setStrokeStyle(2, 0x34305a);
+    const bar = this.add
+      .rectangle(x + 22, 30, (146 * view.lampCharge) / 100, 10, hexNum(RAMPS.lamp[3]))
+      .setOrigin(0, 0.5);
     const dark = ["Bright", "Dim", "Dark", "Pitch dark"][darknessLevel(view.lampCharge)];
     const lampText = this.add.text(x + 20, 42, `Lamp ${view.lampCharge}% · ${dark}`, TEXT.tiny);
     attachTooltip(barBg, {
@@ -184,7 +203,12 @@ export class ExpeditionScene extends Phaser.Scene {
       const y0 = MAP_Y0 + rows[0] * ROW_H - ROW_H / 2;
       g.fillStyle(hexNum(color), 0.18);
       g.fillRect(MAP_X0 - 30, y0, MAP_W + 60, (rows[1] - rows[0] + 1) * ROW_H);
-      this.layer.add(this.add.text(MAP_X0 - 24, y0 + 6, name.toUpperCase(), { ...TEXT.tiny, color: COLORS.textMuted }));
+      this.layer.add(
+        this.add.text(MAP_X0 - 24, y0 + 6, name.toUpperCase(), {
+          ...TEXT.tiny,
+          color: COLORS.textMuted,
+        }),
+      );
     }
     const visited = new Set(view.visited);
     const available = new Set(view.available);
@@ -196,7 +220,11 @@ export class ExpeditionScene extends Phaser.Scene {
         const b = this.nodePos(m);
         const travelled = visited.has(n.id) && visited.has(m.id);
         const open = n.id === view.currentNodeId && available.has(m.id);
-        g.lineStyle(travelled ? 4 : open ? 3 : 2, travelled ? hexNum(RAMPS.lamp[3]) : open ? hexNum(RAMPS.lamp[2]) : 0x34305a, travelled || open ? 0.95 : 0.6);
+        g.lineStyle(
+          travelled ? 4 : open ? 3 : 2,
+          travelled ? hexNum(RAMPS.lamp[3]) : open ? hexNum(RAMPS.lamp[2]) : 0x34305a,
+          travelled || open ? 0.95 : 0.6,
+        );
         g.lineBetween(a.x, a.y, b.x, b.y);
       }
     }
@@ -208,12 +236,24 @@ export class ExpeditionScene extends Phaser.Scene {
       const size = n.type === "boss" ? 56 : 40;
       const ring = this.add
         .circle(x, y, size / 2 + 4, current ? hexNum(RAMPS.lamp[2]) : 0x0e0c16)
-        .setStrokeStyle(open ? 3 : 2, open ? COLOR_NUM.accentBright : isVisited ? hexNum(RAMPS.lamp[1]) : 0x34305a);
-      const icon = this.add.image(x, y, iconTexture(this, `node_${n.type}`)).setScale(n.type === "boss" ? 3 : 2);
+        .setStrokeStyle(
+          open ? 3 : 2,
+          open ? COLOR_NUM.accentBright : isVisited ? hexNum(RAMPS.lamp[1]) : 0x34305a,
+        );
+      const icon = this.add
+        .image(x, y, iconTexture(this, `node_${n.type}`))
+        .setScale(n.type === "boss" ? 3 : 2);
       if (!open && !current && !isVisited) icon.setAlpha(0.55);
       this.layer.add([ring, icon]);
       if (open) {
-        this.tweens.add({ targets: ring, scale: 1.12, duration: 600, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+        this.tweens.add({
+          targets: ring,
+          scale: 1.12,
+          duration: 600,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.inOut",
+        });
         ring.setInteractive({ useHandCursor: true }).on("pointerdown", () => {
           audio.play("uiClick");
           this.session.command({ type: "vote", nodeId: n.id });
@@ -221,23 +261,42 @@ export class ExpeditionScene extends Phaser.Scene {
       }
       attachTooltip(ring, {
         title: NODE_NAMES[n.type] ?? n.type,
-        titleColor: n.type === "boss" ? COLORS.relic : n.type === "elite" ? COLORS.epic : COLORS.accentBright,
+        titleColor:
+          n.type === "boss" ? COLORS.relic : n.type === "elite" ? COLORS.epic : COLORS.accentBright,
         subtitle: `${BIOME_NAMES[n.biome]} · Depth ${n.row}`,
-        lines: [NODE_DESC[n.type] ?? "", ...(open ? [{ text: "Click to vote for this route", color: COLORS.accentPale }] : [])],
+        lines: [
+          NODE_DESC[n.type] ?? "",
+          ...(open ? [{ text: "Click to vote for this route", color: COLORS.accentPale }] : []),
+        ],
       });
       // Votes
       const voters = Object.entries(view.votes).filter(([, id]) => id === n.id);
       voters.forEach(([pid], i) => {
         const name = view.players.find((p) => p.id === pid)?.name ?? pid;
         const chip = this.add
-          .text(x + size / 2 + 8, y - 12 + i * 18, name, { ...TEXT.tiny, color: pid === view.viewerId ? COLORS.accentBright : COLORS.info })
+          .text(x + size / 2 + 8, y - 12 + i * 18, name, {
+            ...TEXT.tiny,
+            color: pid === view.viewerId ? COLORS.accentBright : COLORS.info,
+          })
           .setBackgroundColor("#0e0c16")
           .setPadding(4, 1, 4, 1);
         this.layer.add(chip);
       });
       if (current) {
-        const marker = this.add.text(x, y - size / 2 - 8, "▼", { fontFamily: FONT_FAMILY, fontSize: "20px", color: COLORS.accentBright }).setOrigin(0.5, 1);
-        this.tweens.add({ targets: marker, y: marker.y - 6, duration: 500, yoyo: true, repeat: -1 });
+        const marker = this.add
+          .text(x, y - size / 2 - 8, "▼", {
+            fontFamily: FONT_FAMILY,
+            fontSize: "20px",
+            color: COLORS.accentBright,
+          })
+          .setOrigin(0.5, 1);
+        this.tweens.add({
+          targets: marker,
+          y: marker.y - 6,
+          duration: 500,
+          yoyo: true,
+          repeat: -1,
+        });
         this.layer.add(marker);
       }
     }
@@ -246,7 +305,11 @@ export class ExpeditionScene extends Phaser.Scene {
       const msg = view.votes[view.viewerId]
         ? `Waiting for ${waiting.join(", ")} to vote…`
         : "Choose the next stop on the route.";
-      this.layer.add(this.add.text(MAP_X0 + MAP_W / 2, GAME_H - 30, msg, { ...TEXT.small, color: COLORS.accentPale }).setOrigin(0.5));
+      this.layer.add(
+        this.add
+          .text(MAP_X0 + MAP_W / 2, GAME_H - 30, msg, { ...TEXT.small, color: COLORS.accentPale })
+          .setOrigin(0.5),
+      );
     }
   }
 
@@ -254,7 +317,12 @@ export class ExpeditionScene extends Phaser.Scene {
     const x = 24;
     let y = 120;
     this.layer.add(this.add.text(x, 80, "SQUAD", { ...TEXT.small, color: COLORS.accent }));
-    this.layer.add(this.add.text(x + 80, 82, "[C] character sheet · [Esc] menu", { ...TEXT.tiny, color: COLORS.textMuted }));
+    this.layer.add(
+      this.add.text(x + 80, 82, "[C] character sheet · [Esc] menu", {
+        ...TEXT.tiny,
+        color: COLORS.textMuted,
+      }),
+    );
     view.mercs.forEach((m, i) => {
       const stats = computeStats(m);
       const mine = m.ownerId === view.viewerId;
@@ -264,44 +332,81 @@ export class ExpeditionScene extends Phaser.Scene {
         .setStrokeStyle(2, mine ? COLOR_NUM.accent : 0x34305a)
         .setInteractive({ useHandCursor: true });
       card.on("pointerdown", () => globals.openCharacter?.(this, m.id));
-      const portrait = this.add.image(x + 48, y + 52, unitPortrait(this, { id: m.id, side: "merc", defId: m.discipline }, view.mercs)).setScale(3);
+      const portrait = this.add
+        .image(
+          x + 48,
+          y + 52,
+          unitPortrait(this, { id: m.id, side: "merc", defId: m.discipline }, view.mercs),
+        )
+        .setScale(3);
       const owner = view.players.find((p) => p.id === m.ownerId)?.name ?? "";
       const name = this.add.text(x + 96, y + 10, `${i + 1}. ${m.name}`, TEXT.subheading);
-      const sub = this.add.text(x + 96, y + 36, `Lv ${m.level} ${getDiscipline(m.discipline).name}${view.players.length > 1 ? ` · ${owner}` : ""}`, TEXT.small);
-      const hpBg = this.add.rectangle(x + 96, y + 74, 200, 10, 0x05040a).setOrigin(0, 0.5).setStrokeStyle(2, 0x231f3d);
-      const hp = this.add.rectangle(x + 97, y + 74, (198 * Math.max(0, m.hp)) / stats.maxHp, 6, 0xbd4a2e).setOrigin(0, 0.5);
+      const sub = this.add.text(
+        x + 96,
+        y + 36,
+        `Lv ${m.level} ${getDiscipline(m.discipline).name}${view.players.length > 1 ? ` · ${owner}` : ""}`,
+        TEXT.small,
+      );
+      const hpBg = this.add
+        .rectangle(x + 96, y + 74, 200, 10, 0x05040a)
+        .setOrigin(0, 0.5)
+        .setStrokeStyle(2, 0x231f3d);
+      const hp = this.add
+        .rectangle(x + 97, y + 74, (198 * Math.max(0, m.hp)) / stats.maxHp, 6, 0xbd4a2e)
+        .setOrigin(0, 0.5);
       const hpText = this.add.text(x + 306, y + 66, `${m.hp}/${stats.maxHp}`, TEXT.tiny);
       this.layer.add([card, portrait, name, sub, hpBg, hp, hpText]);
       const lamp = m.equipment.lamp;
       if (lamp) {
-        const li = this.add.image(x + 372, y + 24, iconTexture(this, getItemBase(lamp.baseId).icon)).setScale(2);
-        attachTooltip(li, { title: lamp.name, titleColor: RARITY_COLORS[lamp.rarity], lines: describeItem(lamp).lines });
+        const li = this.add
+          .image(x + 372, y + 24, iconTexture(this, getItemBase(lamp.baseId).icon))
+          .setScale(2);
+        attachTooltip(li, {
+          title: lamp.name,
+          titleColor: RARITY_COLORS[lamp.rarity],
+          lines: describeItem(lamp).lines,
+        });
         this.layer.add(li);
       }
       if (mine && m.perkOffers.length) {
-        const badge = this.add.text(x + 300, y + 86, "★ LEVEL UP", { ...TEXT.tiny, color: COLORS.accentBright }).setOrigin(0, 0.5);
+        const badge = this.add
+          .text(x + 300, y + 86, "★ LEVEL UP", { ...TEXT.tiny, color: COLORS.accentBright })
+          .setOrigin(0, 0.5);
         this.tweens.add({ targets: badge, alpha: 0.4, duration: 500, yoyo: true, repeat: -1 });
         this.layer.add(badge);
       }
       y += 116;
     });
-    const stash = this.add.text(x, y + 4, `Stash: ${view.stash.length} item${view.stash.length === 1 ? "" : "s"} — open a character sheet to equip`, {
-      ...TEXT.tiny,
-      color: COLORS.textDim,
-    });
+    const stash = this.add.text(
+      x,
+      y + 4,
+      `Stash: ${view.stash.length} item${view.stash.length === 1 ? "" : "s"} — open a character sheet to equip`,
+      {
+        ...TEXT.tiny,
+        color: COLORS.textDim,
+      },
+    );
     this.layer.add(stash);
   }
 
   private drawReward(view: RunView): void {
     const rw = view.reward;
     if (!rw) return;
-    const shade = this.add.rectangle(0, 0, GAME_W, GAME_H, 0x05040a, 0.7).setOrigin(0).setInteractive();
+    const shade = this.add
+      .rectangle(0, 0, GAME_W, GAME_H, 0x05040a, 0.7)
+      .setOrigin(0)
+      .setInteractive();
     const w = 640;
     const h = 420;
     const px = GAME_W / 2 - w / 2 + 120;
     const py = GAME_H / 2 - h / 2;
-    const panel = this.add.rectangle(px, py, w, h, 0x0e0c16, 0.97).setOrigin(0).setStrokeStyle(3, COLOR_NUM.accent);
-    const title = this.add.text(px + w / 2, py + 22, rw.title.toUpperCase(), TEXT.heading).setOrigin(0.5, 0);
+    const panel = this.add
+      .rectangle(px, py, w, h, 0x0e0c16, 0.97)
+      .setOrigin(0)
+      .setStrokeStyle(3, COLOR_NUM.accent);
+    const title = this.add
+      .text(px + w / 2, py + 22, rw.title.toUpperCase(), TEXT.heading)
+      .setOrigin(0.5, 0);
     this.overlay.add([shade, panel, title]);
     let y = py + 76;
     const gains: string[] = [];
@@ -309,7 +414,14 @@ export class ExpeditionScene extends Phaser.Scene {
     if (rw.ore) gains.push(`+${rw.ore} ore`);
     if (rw.lamp) gains.push(`${rw.lamp > 0 ? "+" : ""}${rw.lamp} lamp`);
     if (gains.length) {
-      this.overlay.add(this.add.text(px + w / 2, y, gains.join("   "), { ...TEXT.subheading, color: COLORS.accentBright }).setOrigin(0.5, 0));
+      this.overlay.add(
+        this.add
+          .text(px + w / 2, y, gains.join("   "), {
+            ...TEXT.subheading,
+            color: COLORS.accentBright,
+          })
+          .setOrigin(0.5, 0),
+      );
       y += 40;
     }
     for (const note of rw.notes) {
@@ -319,21 +431,42 @@ export class ExpeditionScene extends Phaser.Scene {
     }
     if (rw.items.length) {
       y += 8;
-      this.overlay.add(this.add.text(px + 32, y, "LOOT (added to the shared stash)", { ...TEXT.tiny, color: COLORS.textMuted }));
+      this.overlay.add(
+        this.add.text(px + 32, y, "LOOT (added to the shared stash)", {
+          ...TEXT.tiny,
+          color: COLORS.textMuted,
+        }),
+      );
       y += 24;
       rw.items.forEach((item, i) => {
         const ix = px + 32 + i * 196;
         const color = RARITY_COLORS[item.rarity];
-        const frame = this.add.rectangle(ix, y, 184, 84, 0x07060b).setOrigin(0).setStrokeStyle(2, hexNum(color));
-        const icon = this.add.image(ix + 30, y + 42, iconTexture(this, getItemBase(item.baseId).icon)).setScale(3);
-        const name = this.add.text(ix + 58, y + 10, item.name, { fontFamily: FONT_FAMILY, fontSize: "14px", color, wordWrap: { width: 120 } });
-        const rarity = this.add.text(ix + 58, y + 62, item.rarity.toUpperCase(), { ...TEXT.tiny, color });
+        const frame = this.add
+          .rectangle(ix, y, 184, 84, 0x07060b)
+          .setOrigin(0)
+          .setStrokeStyle(2, hexNum(color));
+        const icon = this.add
+          .image(ix + 30, y + 42, iconTexture(this, getItemBase(item.baseId).icon))
+          .setScale(3);
+        const name = this.add.text(ix + 58, y + 10, item.name, {
+          fontFamily: FONT_FAMILY,
+          fontSize: "14px",
+          color,
+          wordWrap: { width: 120 },
+        });
+        const rarity = this.add.text(ix + 58, y + 62, item.rarity.toUpperCase(), {
+          ...TEXT.tiny,
+          color,
+        });
         const d = describeItem(item);
         attachTooltip(frame, {
           title: d.name,
           titleColor: color,
           subtitle: d.subtitle,
-          lines: [...d.lines, ...(d.perk ? [{ text: `${d.perk.name}: ${d.perk.desc}`, color: COLORS.relic }] : [])],
+          lines: [
+            ...d.lines,
+            ...(d.perk ? [{ text: `${d.perk.name}: ${d.perk.desc}`, color: COLORS.relic }] : []),
+          ],
         });
         this.overlay.add([frame, icon, name, rarity]);
         if (item.rarity === "relic") audio.play("lootRelic");

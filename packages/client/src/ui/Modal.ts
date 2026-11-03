@@ -9,13 +9,23 @@ import { Button, type ButtonKind } from "./Button";
 import { FocusGroup } from "./focus";
 import { createDivider, createPanel } from "./Panel";
 import { TextInput } from "./TextInput";
-import { COLOR_NUM, COLORS, DEPTH, DURATION, GAME_H, GAME_W, GRID, playUiSound, TEXT } from "./theme";
+import {
+  COLOR_NUM,
+  COLORS,
+  DEPTH,
+  DURATION,
+  GAME_H,
+  GAME_W,
+  GRID,
+  playUiSound,
+  TEXT,
+} from "./theme";
 
 export interface ModalButton {
   label: string;
   kind?: ButtonKind;
   /** Return false to keep the modal open. */
-  onClick?: (modal: ModalHandle) => void | boolean;
+  onClick?: (modal: ModalHandle) => boolean | undefined;
   /** Initially focused (default: the last button). */
   focus?: boolean;
   width?: number;
@@ -75,7 +85,10 @@ export function openModal(scene: Phaser.Scene, opts: ModalOptions): ModalHandle 
     .setScrollFactor(0)
     .setDepth(DEPTH.modal)
     .setInteractive();
-  const root = scene.add.container(0, 0).setDepth(DEPTH.modal + 1).setScrollFactor(0);
+  const root = scene.add
+    .container(0, 0)
+    .setDepth(DEPTH.modal + 1)
+    .setScrollFactor(0);
 
   const title = scene.add.text(PAD, PAD - 4, opts.title, TEXT.heading);
   const divider = createDivider(scene, PAD, PAD + 40, inner);
@@ -132,7 +145,9 @@ export function openModal(scene: Phaser.Scene, opts: ModalOptions): ModalHandle 
   }
 
   // Buttons, centered row.
-  const bw = buttons.map((b) => b.width ?? Math.max(168, Math.min(240, inner / buttons.length - GRID)));
+  const bw = buttons.map(
+    (b) => b.width ?? Math.max(168, Math.min(240, inner / buttons.length - GRID)),
+  );
   const totalW = bw.reduce((a, b) => a + b, 0) + GRID * 2 * (buttons.length - 1);
   let bx = (width - totalW) / 2;
   const btnObjs = buttons.map((b, i) => {
@@ -170,7 +185,13 @@ export function openModal(scene: Phaser.Scene, opts: ModalOptions): ModalHandle 
   root.setAlpha(0);
   root.y = top + 12;
   scene.tweens.add({ targets: dim, alpha: 1, duration: DURATION.normal });
-  scene.tweens.add({ targets: root, alpha: 1, y: top, duration: DURATION.normal, ease: "Quad.out" });
+  scene.tweens.add({
+    targets: root,
+    alpha: 1,
+    y: top,
+    duration: DURATION.normal,
+    ease: "Quad.out",
+  });
 
   const onShutdown = () => close(true);
   scene.events.once(Phaser.Scenes.Events.SHUTDOWN, onShutdown);
@@ -296,7 +317,7 @@ export function promptDialog(
 
     const trySubmit = (m: ModalHandle): boolean => {
       const v = values();
-      const missing = opts.fields.findIndex((f, i) => (f.required ?? true) && !v[f.key] && i >= 0);
+      const missing = opts.fields.findIndex((f) => (f.required ?? true) && !v[f.key]);
       let err: string | null = null;
       if (missing >= 0) {
         err = `${opts.fields[missing]?.label ?? "Field"} is required.`;
@@ -372,7 +393,7 @@ export function promptDialog(
 
     function firstEmpty(): number {
       const i = opts.fields.findIndex((f) => !f.value);
-      return i >= 0 ? i : 0;
+      return Math.max(i, 0);
     }
 
     m.onClose(() => {

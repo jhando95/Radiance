@@ -4,7 +4,6 @@
  * fades into the title (or a `?debug=` route in dev builds).
  */
 import * as Phaser from "phaser";
-import { hexNum, RAMPS } from "../art/palette";
 import { SCENES } from "../app/scenes";
 import {
   enemyTexture,
@@ -18,6 +17,7 @@ import {
 } from "../app/textures";
 import { goTo } from "../app/transitions";
 import { VERSION } from "../app/version";
+import { hexNum, RAMPS } from "../art/palette";
 import { iconIds } from "../ui/artAdapter";
 import { COLOR_NUM, COLORS, FONT_FAMILY, GAME_H, GAME_W, GRID, TEXT } from "../ui/theme";
 
@@ -82,7 +82,8 @@ export class BootScene extends Phaser.Scene {
     const steps: Array<[string, () => void]> = [
       ["Charging lamp cells", () => ensureUiTextures(this)],
       ...chunk(icons, 12).map(
-        (ids) => ["Etching the glyphs", () => ensureIconTextures(this, ids)] as [string, () => void],
+        (ids) =>
+          ["Etching the glyphs", () => ensureIconTextures(this, ids)] as [string, () => void],
       ),
       ["Charting the sunless moons", () => mapBackdropTexture(this, 7)],
       [
@@ -161,9 +162,7 @@ export class BootScene extends Phaser.Scene {
       repeat: -1,
       ease: "Sine.inOut",
     });
-    this.add
-      .text(cx, cy - 8, "RADIANCE", { ...TEXT.title, letterSpacing: 8 })
-      .setOrigin(0.5);
+    this.add.text(cx, cy - 8, "RADIANCE", { ...TEXT.title, letterSpacing: 8 }).setOrigin(0.5);
     this.status = this.add
       .text(cx, cy + 92, "Kindling the lamps…", { ...TEXT.small, color: COLORS.textDim })
       .setOrigin(0.5);

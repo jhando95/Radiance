@@ -105,7 +105,7 @@ export class MenuItem extends Phaser.GameObjects.Container implements Focusable 
     this.scene.tweens.killTweensOf([this.glow, this.lampL, this.lampR]);
     this.scene.tweens.add({
       targets: this.glow,
-      alpha: on ? 0.5 : 0,
+      alpha: on ? 0.7 : 0,
       duration: DURATION.normal,
     });
     this.scene.tweens.add({
@@ -118,7 +118,7 @@ export class MenuItem extends Phaser.GameObjects.Container implements Focusable 
     if (on) {
       this.flicker = this.scene.tweens.add({
         targets: this.glow,
-        alpha: { from: 0.5, to: 0.36 },
+        alpha: { from: 0.7, to: 0.5 },
         duration: 140,
         yoyo: true,
         repeat: -1,

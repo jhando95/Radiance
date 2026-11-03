@@ -5,7 +5,7 @@
  * nearest-neighbour filtering.
  */
 import * as backgroundsMod from "../art/backgrounds";
-import { drawBackdrop, drawMapBackdrop, type Biome } from "../art/backgrounds";
+import { type Biome, drawBackdrop, drawMapBackdrop } from "../art/backgrounds";
 import * as enemiesMod from "../art/enemies";
 import { drawEnemy, type EnemyArtId } from "../art/enemies";
 import * as iconsMod from "../art/icons";
@@ -14,7 +14,14 @@ import * as mercsMod from "../art/mercs";
 import { drawMerc, type MercLook } from "../art/mercs";
 import type { RARITY_COLORS } from "../art/palette";
 import * as uiMod from "../art/ui";
-import { drawBarFrame, drawButton, drawLightCone, drawPanel, drawSlot, drawTitleLogo } from "../art/ui";
+import {
+  drawBarFrame,
+  drawButton,
+  drawLightCone,
+  drawPanel,
+  drawSlot,
+  drawTitleLogo,
+} from "../art/ui";
 
 export type PanelVariant = "default" | "inset" | "highlight";
 export type ButtonState = "idle" | "hover" | "pressed" | "disabled";

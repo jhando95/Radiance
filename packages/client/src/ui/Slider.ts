@@ -1,7 +1,6 @@
 /** Horizontal value slider row (volumes etc). Drag, click, or Left/Right when focused. */
 import * as Phaser from "phaser";
-import { RAMPS } from "../art/palette";
-import { hexNum } from "../art/palette";
+import { hexNum, RAMPS } from "../art/palette";
 import { Row, type RowOptions } from "./Row";
 import { COLOR_NUM, COLORS, GRID, playUiSound, TEXT } from "./theme";
 

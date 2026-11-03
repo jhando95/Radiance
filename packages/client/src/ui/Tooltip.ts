@@ -166,7 +166,7 @@ const views = new WeakMap<Phaser.Scene, TooltipView>();
 
 function viewFor(scene: Phaser.Scene): TooltipView {
   let v = views.get(scene);
-  if (!v || !v.root.active) {
+  if (!v?.root.active) {
     v = new TooltipView(scene);
     views.set(scene, v);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => views.delete(scene));

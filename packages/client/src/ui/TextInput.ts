@@ -159,5 +159,4 @@ export class TextField extends Row {
   protected override onFocusChange(focused: boolean): void {
     this.field.el.classList.toggle("rad-input--focus", focused);
   }
-
 }

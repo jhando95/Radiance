@@ -11,12 +11,12 @@
 import {
   canEquip,
   computeStats,
-  type EquipSlot,
   EQUIP_SLOTS,
+  type EquipSlot,
   formatMods,
   getDiscipline,
   getOrigin,
-  getPerk,
+  type getPerk,
   getSkill,
   type Item,
   type ItemSlot,
@@ -285,7 +285,9 @@ export class CharacterScene extends Phaser.Scene {
 
   private buildChrome(): void {
     this.add.image(M + 16, 26, iconTexture(this, "ui_lamp")).setScale(2);
-    this.add.text(M + 40, 26, "Mercenaries", { ...TEXT.heading, fontSize: "24px" }).setOrigin(0, 0.5);
+    this.add
+      .text(M + 40, 26, "Mercenaries", { ...TEXT.heading, fontSize: "24px" })
+      .setOrigin(0, 0.5);
     this.noticeIcon = this.add
       .image(0, 26, iconTexture(this, "ui_lock"))
       .setScale(2)
@@ -357,11 +359,7 @@ export class CharacterScene extends Phaser.Scene {
     if (lockReason) {
       this.setNotice(lockReason, !owned ? COLORS.info : COLORS.danger, "ui_lock");
     } else {
-      this.setNotice(
-        "Click stash items to equip · click gear to unequip",
-        COLORS.textMuted,
-        null,
-      );
+      this.setNotice("Click stash items to equip · click gear to unequip", COLORS.textMuted, null);
     }
 
     const ctx: Ctx = { view, merc, owned, editable, phaseOk, lockReason };
@@ -810,9 +808,7 @@ export class CharacterScene extends Phaser.Scene {
       y += 28;
       const rows = group.rows.filter(
         (row) =>
-          row.core ||
-          rowValue(cur, row.key) !== 0 ||
-          (preview && rowValue(preview, row.key) !== 0),
+          row.core || rowValue(cur, row.key) !== 0 || (preview && rowValue(preview, row.key) !== 0),
       );
       const maxRows = 8;
       rows.slice(0, maxRows).forEach((row) => {
@@ -1022,8 +1018,7 @@ export class CharacterScene extends Phaser.Scene {
       toast(this, ctx.lockReason, "info");
       return;
     }
-    const slots =
-      this.pending?.mercId === merc.id ? [...this.pending.slots] : [...merc.skills];
+    const slots = this.pending?.mercId === merc.id ? [...this.pending.slots] : [...merc.skills];
     while (slots.length < 4) slots.push(null);
     const idx = slots.indexOf(skillId);
     if (idx >= 0) {
