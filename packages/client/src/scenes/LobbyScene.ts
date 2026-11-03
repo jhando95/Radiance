@@ -5,6 +5,7 @@ import { iconTexture, mapBackdropTexture } from "../app/textures";
 import { goTo } from "../app/transitions";
 import { audio } from "../audio";
 import { globals, sceneForPhase } from "../game/globals";
+import { fitBackdrop, fitImage } from "../game/hdArt";
 import type { GameSession, LobbyInfo, SessionEvent } from "../net/session";
 import { Button } from "../ui/Button";
 import { toast } from "../ui/Toast";
@@ -29,7 +30,7 @@ export class LobbyScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.add.image(GAME_W / 2, GAME_H / 2, mapBackdropTexture(this, 3)).setScale(4);
+    fitBackdrop(this.add.image(GAME_W / 2, GAME_H / 2, mapBackdropTexture(this, 3)));
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x05040a, 0.55).setOrigin(0);
     this.layer = this.add.container(0, 0);
     audio.setMusic("title");
@@ -106,9 +107,14 @@ export class LobbyScene extends Phaser.Scene {
       const row = this.add
         .rectangle(cx, y, 560, 56, 0x0e0c16, 0.95)
         .setStrokeStyle(2, p.id === this.session.playerId ? COLOR_NUM.accent : 0x34305a);
-      const icon = this.add
-        .image(cx - 250, y, iconTexture(this, p.id === lobby.hostId ? "ui_crown" : "ui_player"))
-        .setScale(2);
+      const icon = fitImage(
+        this.add.image(
+          cx - 250,
+          y,
+          iconTexture(this, p.id === lobby.hostId ? "ui_crown" : "ui_player"),
+        ),
+        32,
+      );
       const name = this.add.text(
         cx - 220,
         y - 12,

@@ -1,5 +1,5 @@
 /** Tiny procedural textures for the squad builder's preview stage. */
-import type * as Phaser from "phaser";
+import * as Phaser from "phaser";
 import { INK, mix, RAMPS } from "../../art/palette";
 import { artRng, bayer, Pix } from "../../art/pixel";
 
@@ -81,9 +81,13 @@ function diceCanvas(): HTMLCanvasElement {
 
 export function ensureStageTextures(scene: Phaser.Scene): void {
   if (!scene.textures.exists(STAGE_TEX.ground)) {
-    scene.textures.addCanvas(STAGE_TEX.ground, groundCanvas());
+    scene.textures
+      .addCanvas(STAGE_TEX.ground, groundCanvas())
+      ?.setFilter(Phaser.Textures.FilterMode.NEAREST);
   }
   if (!scene.textures.exists(STAGE_TEX.dice)) {
-    scene.textures.addCanvas(STAGE_TEX.dice, diceCanvas());
+    scene.textures
+      .addCanvas(STAGE_TEX.dice, diceCanvas())
+      ?.setFilter(Phaser.Textures.FilterMode.NEAREST);
   }
 }

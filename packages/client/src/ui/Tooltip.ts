@@ -210,11 +210,11 @@ export function attachTooltip(
       const c = resolve();
       if (!c) return;
       showing = true;
-      showTooltip(scene, c, p.x, p.y);
+      showTooltip(scene, c, p.worldX, p.worldY);
     });
   };
   const move = (p: Phaser.Input.Pointer) => {
-    if (showing) moveTooltip(scene, p.x, p.y);
+    if (showing) moveTooltip(scene, p.worldX, p.worldY);
   };
   const out = () => {
     timer?.remove();

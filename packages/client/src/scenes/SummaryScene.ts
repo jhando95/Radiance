@@ -5,7 +5,7 @@ import { mapBackdropTexture } from "../app/textures";
 import { goTo } from "../app/transitions";
 import { audio } from "../audio";
 import { globals } from "../game/globals";
-import { unitPortrait } from "../game/unitArt";
+import { fitBackdrop, fitImage, portraitTexture } from "../game/hdArt";
 import type { GameSession } from "../net/session";
 import { Button } from "../ui/Button";
 import { COLORS, GAME_H, GAME_W, TEXT } from "../ui/theme";
@@ -19,7 +19,7 @@ export class SummaryScene extends Phaser.Scene {
   create(): void {
     const session = globals.session as GameSession | null;
     const view = session?.currentView;
-    this.add.image(GAME_W / 2, GAME_H / 2, mapBackdropTexture(this, 11)).setScale(4);
+    fitBackdrop(this.add.image(GAME_W / 2, GAME_H / 2, mapBackdropTexture(this, 11)));
     this.add.rectangle(0, 0, GAME_W, GAME_H, 0x05040a, 0.6).setOrigin(0);
     const cx = GAME_W / 2;
     const won = view?.phase === "victory";
@@ -46,13 +46,14 @@ export class SummaryScene extends Phaser.Scene {
         const x = cx - 420 + i * 280;
         const y = 380;
         this.add.rectangle(x, y, 250, 170, 0x0e0c16, 0.95).setStrokeStyle(2, 0x34305a);
-        this.add
-          .image(
+        fitImage(
+          this.add.image(
             x,
             y - 34,
-            unitPortrait(this, { id: m.id, side: "merc", defId: m.discipline }, view.mercs),
-          )
-          .setScale(3.5);
+            portraitTexture(this, { id: m.id, side: "merc", defId: m.discipline }, view.mercs),
+          ),
+          84,
+        );
         this.add.text(x, y + 26, m.name, TEXT.subheading).setOrigin(0.5);
         this.add
           .text(

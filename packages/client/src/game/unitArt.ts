@@ -1,5 +1,5 @@
 import type { Merc, Unit } from "@radiance/core";
-import type * as Phaser from "phaser";
+import * as Phaser from "phaser";
 import {
   drawEnemy,
   drawEnemyPortrait,
@@ -20,7 +20,8 @@ export interface UnitFrame {
 }
 
 function add(scene: Phaser.Scene, key: string, make: () => HTMLCanvasElement): string {
-  if (!scene.textures.exists(key)) scene.textures.addCanvas(key, make());
+  if (!scene.textures.exists(key))
+    scene.textures.addCanvas(key, make())?.setFilter(Phaser.Textures.FilterMode.NEAREST);
   return key;
 }
 

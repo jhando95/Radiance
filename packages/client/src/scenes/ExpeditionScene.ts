@@ -17,7 +17,7 @@ import { goTo } from "../app/transitions";
 import { hexNum, RAMPS, RARITY_COLORS } from "../art/palette";
 import { audio } from "../audio";
 import { globals, sceneForPhase } from "../game/globals";
-import { unitPortrait } from "../game/unitArt";
+import { fitBackdrop, fitImage, portraitTexture } from "../game/hdArt";
 import type { GameSession, SessionEvent } from "../net/session";
 import { Button } from "../ui/Button";
 import { toast } from "../ui/Toast";
@@ -74,7 +74,7 @@ export class ExpeditionScene extends Phaser.Scene {
   }
 
   create(): void {
-    const bg = this.add.image(GAME_W / 2, GAME_H / 2, mapBackdropTexture(this, 7)).setScale(4);
+    const bg = fitBackdrop(this.add.image(GAME_W / 2, GAME_H / 2, mapBackdropTexture(this, 7)));
     this.tweens.add({
       targets: bg,
       x: GAME_W / 2 - 10,
@@ -154,7 +154,7 @@ export class ExpeditionScene extends Phaser.Scene {
     );
     // Lamp charge
     const x = GAME_W - 300;
-    const lampIcon = this.add.image(x, 30, iconTexture(this, "ui_lamp")).setScale(2);
+    const lampIcon = fitImage(this.add.image(x, 30, iconTexture(this, "ui_lamp")), 32);
     const barBg = this.add
       .rectangle(x + 20, 30, 150, 14, 0x05040a)
       .setOrigin(0, 0.5)
@@ -173,7 +173,7 @@ export class ExpeditionScene extends Phaser.Scene {
         `Refuel at camps, with Beacon, or here for ${REFUEL_COST} ore.`,
       ],
     });
-    const ore = this.add.image(x + 200, 30, iconTexture(this, "ui_ore")).setScale(2);
+    const ore = fitImage(this.add.image(x + 200, 30, iconTexture(this, "ui_ore")), 32);
     const oreText = this.add.text(x + 220, 20, String(view.ore), TEXT.number);
     this.layer.add([lampIcon, barBg, bar, lampText, ore, oreText]);
     const refuel = new Button(this, x + 70, 78, {
@@ -240,9 +240,10 @@ export class ExpeditionScene extends Phaser.Scene {
           open ? 3 : 2,
           open ? COLOR_NUM.accentBright : isVisited ? hexNum(RAMPS.lamp[1]) : 0x34305a,
         );
-      const icon = this.add
-        .image(x, y, iconTexture(this, `node_${n.type}`))
-        .setScale(n.type === "boss" ? 3 : 2);
+      const icon = fitImage(
+        this.add.image(x, y, iconTexture(this, `node_${n.type}`)),
+        n.type === "boss" ? 48 : 32,
+      );
       if (!open && !current && !isVisited) icon.setAlpha(0.55);
       this.layer.add([ring, icon]);
       if (open) {
@@ -332,13 +333,14 @@ export class ExpeditionScene extends Phaser.Scene {
         .setStrokeStyle(2, mine ? COLOR_NUM.accent : 0x34305a)
         .setInteractive({ useHandCursor: true });
       card.on("pointerdown", () => globals.openCharacter?.(this, m.id));
-      const portrait = this.add
-        .image(
+      const portrait = fitImage(
+        this.add.image(
           x + 48,
           y + 52,
-          unitPortrait(this, { id: m.id, side: "merc", defId: m.discipline }, view.mercs),
-        )
-        .setScale(3);
+          portraitTexture(this, { id: m.id, side: "merc", defId: m.discipline }, view.mercs),
+        ),
+        72,
+      );
       const owner = view.players.find((p) => p.id === m.ownerId)?.name ?? "";
       const name = this.add.text(x + 96, y + 10, `${i + 1}. ${m.name}`, TEXT.subheading);
       const sub = this.add.text(
@@ -358,9 +360,10 @@ export class ExpeditionScene extends Phaser.Scene {
       this.layer.add([card, portrait, name, sub, hpBg, hp, hpText]);
       const lamp = m.equipment.lamp;
       if (lamp) {
-        const li = this.add
-          .image(x + 372, y + 24, iconTexture(this, getItemBase(lamp.baseId).icon))
-          .setScale(2);
+        const li = fitImage(
+          this.add.image(x + 372, y + 24, iconTexture(this, getItemBase(lamp.baseId).icon)),
+          32,
+        );
         attachTooltip(li, {
           title: lamp.name,
           titleColor: RARITY_COLORS[lamp.rarity],
@@ -445,9 +448,10 @@ export class ExpeditionScene extends Phaser.Scene {
           .rectangle(ix, y, 184, 84, 0x07060b)
           .setOrigin(0)
           .setStrokeStyle(2, hexNum(color));
-        const icon = this.add
-          .image(ix + 30, y + 42, iconTexture(this, getItemBase(item.baseId).icon))
-          .setScale(3);
+        const icon = fitImage(
+          this.add.image(ix + 30, y + 42, iconTexture(this, getItemBase(item.baseId).icon)),
+          48,
+        );
         const name = this.add.text(ix + 58, y + 10, item.name, {
           fontFamily: FONT_FAMILY,
           fontSize: "14px",

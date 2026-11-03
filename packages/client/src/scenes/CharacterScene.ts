@@ -30,9 +30,12 @@ import {
   XP_TABLE,
 } from "@radiance/core";
 import * as Phaser from "phaser";
+import { hdScale } from "../app/hires";
 import { ensureUiTextures, iconTexture, TEX } from "../app/textures";
-import { ensureMercPortrait, ensureMercTexture, lookFromMerc } from "../art/look";
+import { RigSprite } from "../art/hd/rig";
+import { ensureMercPortrait, lookFromMerc } from "../art/look";
 import { hexNum, INK, RAMPS, RARITY_COLORS } from "../art/palette";
+import { fitImage, mercRigFromLook, portraitForLook } from "../game/hdArt";
 import type { GameSession, SessionEvent } from "../net/session";
 import { Button } from "../ui/Button";
 import { type ModalHandle, openModal } from "../ui/Modal";
@@ -231,7 +234,13 @@ export class CharacterScene extends Phaser.Scene {
   }
 
   private onWheel(p: Phaser.Input.Pointer, _over: unknown, _dx: number, dy: number): void {
-    if (p.x < STASH.x || p.x > STASH.x + STASH.w || p.y < GRID_Y || p.y > GRID_Y + CELL * 6) return;
+    if (
+      p.worldX < STASH.x ||
+      p.worldX > STASH.x + STASH.w ||
+      p.worldY < GRID_Y ||
+      p.worldY > GRID_Y + CELL * 6
+    )
+      return;
     const view = this.session.currentView;
     if (!view) return;
     const rows = Math.ceil(this.filteredStash(view).length / GRID_COLS);
@@ -412,7 +421,16 @@ export class CharacterScene extends Phaser.Scene {
       const look = lookFromMerc(m);
       let portrait: Phaser.GameObjects.GameObject[];
       try {
-        portrait = [this.add.image(40, TAB_H / 2, ensureMercPortrait(this, look)).setScale(2)];
+        portrait = [
+          fitImage(
+            this.add.image(
+              40,
+              TAB_H / 2,
+              portraitForLook(this, look, () => ensureMercPortrait(this, look)),
+            ),
+            46,
+          ),
+        ];
       } catch {
         portrait = [...fallbackBadge(this, 40, TAB_H / 2, 48, m.name[0] ?? "?")];
       }
@@ -533,25 +551,13 @@ export class CharacterScene extends Phaser.Scene {
     );
     const look = lookFromMerc(merc);
     try {
-      const k0 = ensureMercTexture(this, look, "idle0");
-      const k1 = ensureMercTexture(this, look, "idle1");
-      const sprite = this.add
-        .image(cx, footY, k0)
-        .setOrigin(0.5, 44 / 48)
-        .setScale(5);
-      if (merc.hp <= 0) sprite.setTint(0x8a8a9a);
-      this.root.add(sprite);
-      let f = 0;
-      this.loops.push(
-        this.time.addEvent({
-          delay: 520,
-          loop: true,
-          callback: () => {
-            f ^= 1;
-            if (sprite.active) sprite.setTexture(f ? k1 : k0);
-          },
-        }),
-      );
+      const rig = new RigSprite(this, cx, footY, mercRigFromLook(look), {
+        scale: hdScale(1.15),
+        pose: merc.hp <= 0 ? "downed" : "idle",
+      });
+      if (merc.hp <= 0) rig.setTintAll(0x8a8a9a);
+      else rig.idle();
+      this.root.add(rig);
     } catch {
       this.root.add([...fallbackBadge(this, cx, footY - 100, 160, merc.name[0] ?? "?")]);
     }

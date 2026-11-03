@@ -3,7 +3,7 @@
  * draws the canvas and registers it with Phaser's texture manager, later calls just return
  * the key. Textures live on the game (not the scene) so any scene can use them after boot.
  */
-import type * as Phaser from "phaser";
+import * as Phaser from "phaser";
 import { RARITY_COLORS } from "../art/palette";
 import { makeCanvas } from "../art/pixel";
 import {
@@ -60,7 +60,7 @@ export function ensureTexture(
   if (scene.textures.exists(key)) return key;
   const canvas = draw();
   if (!canvas) return key;
-  scene.textures.addCanvas(key, canvas);
+  scene.textures.addCanvas(key, canvas)?.setFilter(Phaser.Textures.FilterMode.NEAREST);
   return key;
 }
 

@@ -19,14 +19,17 @@ import {
   skillIcon,
 } from "@radiance/core";
 import * as Phaser from "phaser";
+import { hdScale } from "../app/hires";
 import { SCENES } from "../app/scenes";
 import { ensureUiTextures, mapBackdropTexture, TEX } from "../app/textures";
-import { ensureMercPortrait, ensureMercTexture, lookFromSetup, type MercPose } from "../art/look";
+import { RigSprite } from "../art/hd/rig";
+import { ensureMercPortrait, lookFromSetup, type MercPose } from "../art/look";
 import { ELEMENT_COLORS, hexNum, RAMPS } from "../art/palette";
+import { fitImage, mercRigFromLook, portraitForLook } from "../game/hdArt";
 import { Button } from "../ui/Button";
 import { createDivider, createPanel, setPanelVariant } from "../ui/Panel";
 import { TextInput } from "../ui/TextInput";
-import { COLOR_NUM, COLORS, DURATION, GRID, playUiSound, TEXT } from "../ui/theme";
+import { COLOR_NUM, COLORS, DURATION, GAME_W, GRID, playUiSound, TEXT } from "../ui/theme";
 import {
   APPEARANCE_ROWS,
   type AppearanceKey,
@@ -70,6 +73,8 @@ const LAYOUT = {
 } as const;
 
 const SPRITE_SCALE = 5;
+/** HD rig display size relative to battle size (preview is larger). */
+const PREVIEW_SCALE = 1.3;
 const STAGE_X = LAYOUT.preview.x + LAYOUT.preview.w / 2;
 const FEET_Y = 344;
 
@@ -157,7 +162,9 @@ export class SquadScene extends Phaser.Scene {
   private confirmLockedUntil = 0;
 
   private cards: SlotCard[] = [];
-  private sprite!: Phaser.GameObjects.Image;
+  private sprite!: Phaser.GameObjects.Container;
+  private rig: RigSprite | null = null;
+  private rigKey = "";
   private glow!: Phaser.GameObjects.Image;
   private nameInput!: TextInput;
   private discIcon: Phaser.GameObjects.Container | null = null;
@@ -274,9 +281,7 @@ export class SquadScene extends Phaser.Scene {
       this.setups.length > 1 ? "Tab  next mercenary" : "",
       this.cfg.onBack ? "Esc  back" : "",
     ].filter(Boolean);
-    this.add
-      .text(this.scale.width - GRID * 2, 28, hints.join("     "), TEXT.tiny)
-      .setOrigin(1, 0.5);
+    this.add.text(GAME_W - GRID * 2, 28, hints.join("     "), TEXT.tiny).setOrigin(1, 0.5);
   }
 
   private buildSlotCards(): void {
@@ -373,10 +378,8 @@ export class SquadScene extends Phaser.Scene {
       frequency: 180,
       blendMode: Phaser.BlendModes.ADD,
     });
-    this.sprite = this.add
-      .image(STAGE_X, FEET_Y, "__DEFAULT")
-      .setScale(SPRITE_SCALE)
-      .setOrigin(0.5, 44 / 48);
+    // Live HD rig (rebuilt whenever the look changes).
+    this.sprite = this.add.container(STAGE_X, FEET_Y);
 
     // Name field + random name die
     const fieldW = 320;
@@ -598,16 +601,14 @@ export class SquadScene extends Phaser.Scene {
       });
     }
     const cw = 256;
-    this.confirmBtn = new Button(this, this.scale.width - GRID * 2 - cw / 2, y, {
+    this.confirmBtn = new Button(this, GAME_W - GRID * 2 - cw / 2, y, {
       label: noLig(this.setups.length > 1 ? "Confirm Squad" : "Confirm"),
       width: cw,
       height: 40,
       kind: "primary",
       onClick: () => this.confirm(),
     });
-    this.confirmHint = this.add
-      .text(this.scale.width - GRID * 4 - cw, y, "", TEXT.small)
-      .setOrigin(1, 0.5);
+    this.confirmHint = this.add.text(GAME_W - GRID * 4 - cw, y, "", TEXT.small).setOrigin(1, 0.5);
   }
 
   // -------------------------------------------------------------------------------------
@@ -631,7 +632,13 @@ export class SquadScene extends Phaser.Scene {
 
   private applySprite(): void {
     const look = lookFromSetup(this.setup);
-    this.sprite.setTexture(ensureMercTexture(this, look, this.pose));
+    const key = JSON.stringify(look);
+    if (key === this.rigKey && this.rig) return;
+    this.rigKey = key;
+    this.rig?.destroy();
+    this.rig = new RigSprite(this, 0, 0, mercRigFromLook(look), { scale: hdScale(PREVIEW_SCALE) });
+    this.rig.idle();
+    this.sprite.add(this.rig);
   }
 
   private refreshCards(): void {
@@ -640,7 +647,11 @@ export class SquadScene extends Phaser.Scene {
       if (!s) return;
       const active = i === this.current;
       setPanelVariant(card.bg, active ? "highlight" : "default");
-      card.portrait.setTexture(ensureMercPortrait(this, lookFromSetup(s)));
+      {
+        const look = lookFromSetup(s);
+        card.portrait.setTexture(portraitForLook(this, look, () => ensureMercPortrait(this, look)));
+        fitImage(card.portrait, 62);
+      }
       const name = s.name.trim();
       card.name.setText(noLig(name || "Unnamed"));
       card.name.setColor(name ? (active ? COLORS.accentPale : COLORS.text) : COLORS.danger);
@@ -797,7 +808,7 @@ export class SquadScene extends Phaser.Scene {
     this.tooltip.hide();
     this.refresh();
     this.tweens.killTweensOf(this.sprite);
-    this.sprite.setScale(SPRITE_SCALE);
+    this.sprite.setScale(1);
     this.tweens.add({
       targets: this.sprite,
       x: { from: STAGE_X - 24, to: STAGE_X },
@@ -892,8 +903,10 @@ export class SquadScene extends Phaser.Scene {
     this.pose = pose;
     this.poseUntil = this.time.now + (pose === "attack" ? 650 : 800);
     this.applySprite();
+    if (pose === "attack") void this.rig?.attack();
+    else void this.rig?.cast();
     this.tweens.killTweensOf(this.sprite);
-    this.sprite.setPosition(STAGE_X, FEET_Y).setScale(SPRITE_SCALE).setAlpha(1);
+    this.sprite.setPosition(STAGE_X, FEET_Y).setScale(1).setAlpha(1);
     if (pose === "attack") {
       this.tweens.add({
         targets: this.sprite,
@@ -924,7 +937,7 @@ export class SquadScene extends Phaser.Scene {
     this.sprite.setPosition(STAGE_X, FEET_Y).setAlpha(1);
     this.tweens.add({
       targets: this.sprite,
-      scale: { from: SPRITE_SCALE * amount, to: SPRITE_SCALE },
+      scale: { from: amount, to: 1 },
       duration: DURATION.slow,
       ease: "Back.out",
     });

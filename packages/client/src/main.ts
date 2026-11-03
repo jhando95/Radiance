@@ -5,8 +5,16 @@
 import "@fontsource/pixelify-sans/400.css";
 import "@fontsource/pixelify-sans/600.css";
 import "@fontsource/pixelify-sans/700.css";
+import "@fontsource/cinzel/600.css";
+import "@fontsource/cinzel/700.css";
+import "@fontsource/cinzel/900.css";
+import "@fontsource/alegreya-sans/400.css";
+import "@fontsource/alegreya-sans/500.css";
+import "@fontsource/alegreya-sans/700.css";
+import "@fontsource/alegreya-sans/800.css";
 import "./ui/style.css";
 import * as Phaser from "phaser";
+import { installCrispText, installHiRes, RENDER_H, RENDER_W } from "./app/hires";
 import { registerGameplayScenes, SCENES } from "./app/scenes";
 import { getSettings, onSettingsChange } from "./app/settings";
 import { BootScene } from "./scenes/BootScene";
@@ -18,18 +26,23 @@ import { SettingsScene } from "./scenes/SettingsScene";
 import { TitleScene } from "./scenes/TitleScene";
 import { UiOverlayScene } from "./scenes/UiOverlayScene";
 import "./scenes/gameplay";
-import { COLORS, GAME_H, GAME_W, installLigatureFix } from "./ui/theme";
+import { COLORS, installLigatureFix } from "./ui/theme";
 
 // Before any scene creates text: suppress Pixelify Sans fi/fl/ff ligatures everywhere.
 installLigatureFix(Phaser.GameObjects.Text);
+// Every text object rasterizes at high resolution.
+installCrispText(Phaser.GameObjects.Text);
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
-  width: GAME_W,
-  height: GAME_H,
+  // Full-HD backing canvas; cameras zoom so game code keeps using logical 1280x720.
+  width: RENDER_W,
+  height: RENDER_H,
   parent: "game",
   backgroundColor: COLORS.bg,
-  pixelArt: true,
+  // Smooth filtering for HD art; remaining pixel-art textures opt into NEAREST.
+  pixelArt: false,
+  antialias: true,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   dom: { createContainer: true },
   input: { activePointers: 2 },
@@ -48,6 +61,7 @@ registerGameplayScenes(game);
 // Overlays last so they render above gameplay scenes by default.
 game.scene.add(SCENES.pause, PauseOverlay, false);
 game.scene.add(SCENES.uiOverlay, UiOverlayScene, false);
+installHiRes(game);
 
 // Phaser's own sound manager follows the master volume (the audio module may layer on top).
 const applyVolume = () => {

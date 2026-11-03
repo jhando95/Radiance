@@ -99,7 +99,7 @@ export class Slider extends Row {
   }
 
   private setFromPointer(p: Phaser.Input.Pointer): void {
-    const local = p.x - this.getWorldTransformMatrix().tx - this.trackX;
+    const local = p.worldX - this.getWorldTransformMatrix().tx - this.trackX;
     const t = Phaser.Math.Clamp(local / this.trackW, 0, 1);
     this.setValue(this.min + t * (this.max - this.min), true);
   }

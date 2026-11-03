@@ -13,14 +13,16 @@ import {
   validTargets,
 } from "@radiance/core";
 import * as Phaser from "phaser";
+import { hdScale } from "../app/hires";
 import { SCENES } from "../app/scenes";
 import { animDuration, getSettings } from "../app/settings";
 import { backdropTexture, iconTexture } from "../app/textures";
 import { goTo } from "../app/transitions";
+import { RigSprite } from "../art/hd/rig";
 import { ELEMENT_COLORS, hexNum, RAMPS } from "../art/palette";
 import { audio, type Sfx } from "../audio";
 import { type GameGlobals, globals } from "../game/globals";
-import { type UnitPose, unitFrame, unitPortrait, unitTexture } from "../game/unitArt";
+import { fitBackdrop, fitImage, portraitTexture, unitRig } from "../game/hdArt";
 import type { GameSession, SessionEvent } from "../net/session";
 import { Button } from "../ui/Button";
 import { toast } from "../ui/Toast";
@@ -57,7 +59,7 @@ interface UnitSprite {
   id: string;
   side: Unit["side"];
   root: Phaser.GameObjects.Container;
-  sprite: Phaser.GameObjects.Image;
+  rig: RigSprite;
   shadow: Phaser.GameObjects.Ellipse;
   hpBack: Phaser.GameObjects.Rectangle;
   hpFill: Phaser.GameObjects.Rectangle;
@@ -66,7 +68,7 @@ interface UnitSprite {
   statusRow: Phaser.GameObjects.Container;
   marker: Phaser.GameObjects.Text;
   hit: Phaser.GameObjects.Rectangle;
-  pose: UnitPose;
+  pose: "idle" | "downed";
   /** Currently displayed HP (animated ahead of the authoritative view). */
   hp: number;
   maxHp: number;
@@ -94,7 +96,6 @@ export class BattleScene extends Phaser.Scene {
   private darkImage!: Phaser.GameObjects.Image;
   private glowLayer!: Phaser.GameObjects.Container;
   private banner: Phaser.GameObjects.Text | null = null;
-  private idleFrame = 0;
   private unsubscribe: (() => void) | null = null;
   private leaving = false;
   /** Map node of the fight this scene was created for. */
@@ -129,7 +130,7 @@ export class BattleScene extends Phaser.Scene {
     const biome = node?.biome ?? "duskMines";
     const layers = backdropTexture(this, biome, node?.row ?? 1);
     layers.forEach((key, i) => {
-      const img = this.add.image(GAME_W / 2, GAME_H / 2, key).setScale(SCALE);
+      const img = fitBackdrop(this.add.image(GAME_W / 2, GAME_H / 2, key));
       img.setDepth(-100 + i);
       this.tweens.add({
         targets: img,
@@ -154,7 +155,6 @@ export class BattleScene extends Phaser.Scene {
     this.unsubscribe = this.session.subscribe((e) => this.onSession(e));
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.unsubscribe?.());
 
-    this.time.addEvent({ delay: 520, loop: true, callback: () => this.tickIdle() });
     this.input.keyboard?.on("keydown-ESC", () => {
       if (this.selectedSkill) this.selectSkill(null);
       else this.g.openPause?.(this);
@@ -259,15 +259,18 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createUnit(u: UnitView): UnitSprite {
-    const frame = unitFrame(u);
-    const scale = frame.w > 48 ? 3 : SCALE;
+    const def = unitRig(u, this.view?.mercs ?? []);
     const x = u.side === "merc" ? MERC_X(u.rank) : ENEMY_X(u.rank);
     const root = this.add.container(x, FEET_Y).setDepth(10);
-    const shadow = this.add.ellipse(0, 4, 26 * scale, 6 * scale, 0x000000, 0.45);
-    const sprite = this.add
-      .image(0, 0, unitTexture(this, u, this.view?.mercs ?? [], u.downed ? "downed" : "idle0"))
-      .setOrigin(frame.centerX / frame.w, frame.footY / frame.h)
-      .setScale(scale);
+    const rig = new RigSprite(this, 0, 0, def, {
+      scale: hdScale(),
+      flip: u.side === "enemy",
+      pose: u.downed ? "downed" : "idle",
+    });
+    if (!u.downed) rig.idle();
+    const bodyW = Math.max(70, Math.min(260, rig.displayW));
+    const scale = SCALE;
+    const shadow = this.add.ellipse(0, 4, bodyW * 1.1, 16, 0x000000, 0.5);
     const barW = 96;
     const hpBack = this.add
       .rectangle(-barW / 2, 22, barW, 10, 0x05040a)
@@ -284,22 +287,23 @@ export class BattleScene extends Phaser.Scene {
       .setOrigin(0, 0.5);
     const statusRow = this.add.container(0, 58);
     const marker = this.add
-      .text(0, frame.w > 48 ? -frame.footY * scale * 0.85 : -(36 * scale + 6), "▼", {
+      .text(0, rig.headY - 8, "▼", {
         fontFamily: FONT_FAMILY,
         fontSize: "28px",
         color: COLORS.accentBright,
       })
       .setOrigin(0.5, 1)
       .setVisible(false);
+    const hitH = Math.max(120, -rig.headY + 20);
     const hit = this.add
-      .rectangle(0, -70, 116, 190, 0xffffff, 0)
+      .rectangle(0, -hitH / 2 + 10, Math.max(110, Math.min(bodyW, 180)), hitH, 0xffffff, 0)
       .setInteractive({ useHandCursor: true });
-    root.add([shadow, sprite, hpBack, hpFill, hpText, shieldText, statusRow, marker, hit]);
+    root.add([shadow, rig, hpBack, hpFill, hpText, shieldText, statusRow, marker, hit]);
     const s: UnitSprite = {
       id: u.id,
       side: u.side,
       root,
-      sprite,
+      rig,
       shadow,
       hpBack,
       hpFill,
@@ -308,7 +312,7 @@ export class BattleScene extends Phaser.Scene {
       statusRow,
       marker,
       hit,
-      pose: "idle0",
+      pose: u.downed ? "downed" : "idle",
       hp: u.hp,
       maxHp: u.stats.maxHp,
       hidden: u.hidden,
@@ -334,18 +338,25 @@ export class BattleScene extends Phaser.Scene {
     s.hp = u.hp;
     s.maxHp = u.stats.maxHp;
     s.hidden = u.hidden;
-    this.setPose(s, u.downed ? "downed" : "idle0");
+    if (u.downed && s.pose !== "downed") {
+      s.pose = "downed";
+      void s.rig.down();
+    } else if (!u.downed && s.pose === "downed") {
+      s.pose = "idle";
+      void s.rig.rise();
+    }
     this.drawHp(s);
     const shield = u.statuses.filter((st) => st.id === "shield").reduce((a, st) => a + st.value, 0);
     s.shieldText.setText(shield > 0 ? `◆${shield}` : "");
     // Unlit enemies are swallowed by darkness.
-    s.sprite.setTint(u.side === "enemy" && !u.lit ? 0x4a4677 : 0xffffff);
+    this.applyLight(s, u);
     s.statusRow.removeAll(true);
     const shown = u.statuses.filter((st) => st.id !== "shield").slice(0, 5);
     shown.forEach((st, i) => {
-      const icon = this.add
-        .image((i - (shown.length - 1) / 2) * 28, 0, iconTexture(this, `status_${st.id}`))
-        .setScale(1.5);
+      const icon = fitImage(
+        this.add.image((i - (shown.length - 1) / 2) * 28, 0, iconTexture(this, `status_${st.id}`)),
+        26,
+      );
       const turns = this.add
         .text(icon.x + 8, 6, String(st.turns), {
           fontFamily: FONT_FAMILY,
@@ -371,21 +382,12 @@ export class BattleScene extends Phaser.Scene {
     s.hpText.setText(`${Math.max(0, s.hp)}/${s.maxHp}`).setColor(COLORS.text);
   }
 
-  private setPose(s: UnitSprite, pose: UnitPose): void {
-    if (!this.view) return;
-    const unit = this.findUnitView(s.id);
-    if (!unit) return;
-    s.pose = pose;
-    s.sprite.setTexture(unitTexture(this, unit, this.view.mercs, pose));
-  }
-
-  private tickIdle(): void {
-    if (this.playing) return;
-    this.idleFrame ^= 1;
-    for (const s of this.units.values()) {
-      if (s.pose === "idle0" || s.pose === "idle1")
-        this.setPose(s, this.idleFrame ? "idle1" : "idle0");
-    }
+  /** Unlit enemies are swallowed by darkness: dim their rig and glows. */
+  private applyLight(s: UnitSprite, u: Pick<UnitView, "side" | "lit">): void {
+    const dark = u.side === "enemy" && !u.lit;
+    if (dark) s.rig.setTintAll(0x55507a);
+    else s.rig.clearTintAll();
+    s.rig.setGlowAlpha(dark ? 0.45 : 1);
   }
 
   private findUnitView(id: string): UnitView | undefined {
@@ -401,14 +403,17 @@ export class BattleScene extends Phaser.Scene {
     const view = this.view;
     const combat = view?.combat;
     if (!view || !combat) return;
-    const W = 320;
-    const H = 180;
+    const W = 640;
+    const H = 360;
     if (!this.darkTex) {
       // The texture outlives the scene (textures are game-global), so reuse it across fights.
       this.darkTex = this.textures.exists("battle.dark")
         ? (this.textures.get("battle.dark") as Phaser.Textures.CanvasTexture)
         : this.textures.createCanvas("battle.dark", W, H);
-      this.darkImage.setTexture("battle.dark").setScale(SCALE).setVisible(true);
+      this.darkImage
+        .setTexture("battle.dark")
+        .setScale(GAME_W / W)
+        .setVisible(true);
     }
     const tex = this.darkTex;
     if (!tex) return;
@@ -429,22 +434,19 @@ export class BattleScene extends Phaser.Scene {
     };
     const lamp = Math.max(0, ...combat.mercs.map((m) => m.stats.lightRadius));
     // The squad's own light pool.
-    for (const m of combat.mercs) hole(MERC_X(m.rank) / SCALE, (FEET_Y - 60) / SCALE, 34, 0.95);
+    for (const m of combat.mercs)
+      hole(MERC_X(m.rank) / (GAME_W / W), (FEET_Y - 100) / (GAME_W / W), 76, 0.95);
     // Light reaching into the enemy ranks.
     for (const e of combat.enemies) {
-      if (e.lit) hole(ENEMY_X(e.rank) / SCALE, (FEET_Y - 60) / SCALE, 30, 0.9);
+      if (e.lit) hole(ENEMY_X(e.rank) / (GAME_W / W), (FEET_Y - 100) / (GAME_W / W), 70, 0.9);
     }
-    hole(W / 2, (FEET_Y - 50) / SCALE, 20 + combat.lightRadius * 8, 0.5);
+    hole(W / 2, (FEET_Y - 90) / (GAME_W / W), 40 + combat.lightRadius * 16, 0.5);
     tex.refresh();
 
     // Warm glow around the lamp bearer.
     this.glowLayer.removeAll(true);
     const bearer = combat.mercs.find((m) => m.stats.lightRadius === lamp && lamp > 0);
     if (bearer) {
-      const glow = this.add
-        .image(MERC_X(bearer.rank) + 30, FEET_Y - 80, iconTexture(this, "__glow"))
-        .setVisible(false);
-      this.glowLayer.add(glow);
       const g = this.add.graphics();
       for (let i = 6; i > 0; i--) {
         g.fillStyle(hexNum(RAMPS.lamp[3]), 0.025 * (7 - i));
@@ -462,7 +464,7 @@ export class BattleScene extends Phaser.Scene {
     if (!view || !combat) return;
     const x = 24;
     const y = 20;
-    this.lightHud.add(this.add.image(x + 12, y + 12, iconTexture(this, "ui_lamp")).setScale(2));
+    this.lightHud.add(fitImage(this.add.image(x + 12, y + 12, iconTexture(this, "ui_lamp")), 28));
     const barW = 160;
     this.lightHud.add(
       this.add
@@ -514,7 +516,10 @@ export class BattleScene extends Phaser.Scene {
           active ? 3 : 2,
           active ? COLOR_NUM.accentBright : u.side === "merc" ? 0x566c8f : 0x82261f,
         );
-      const portrait = this.add.image(x, y, unitPortrait(this, u, view.mercs)).setScale(size / 26);
+      const portrait = fitImage(
+        this.add.image(x, y, portraitTexture(this, u, view.mercs)),
+        size - 4,
+      );
       if (u.side === "enemy" && !u.lit) portrait.setTint(0x4a4677);
       this.turnBar.add([frame, portrait]);
       if (active) {
@@ -557,9 +562,10 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     // Active merc info.
-    const portrait = this.add
-      .image(72, HUD_Y + 72, unitPortrait(this, unit, view.mercs))
-      .setScale(3.4);
+    const portrait = fitImage(
+      this.add.image(72, HUD_Y + 72, portraitTexture(this, unit, view.mercs)),
+      88,
+    );
     const owner = view.players.find((p) => p.id === unit.ownerId)?.name ?? "";
     const mine = unit.ownerId === view.viewerId;
     this.hud.add([
@@ -605,7 +611,7 @@ export class BattleScene extends Phaser.Scene {
           selected ? COLOR_NUM.accentBright : blocker ? 0x34305a : COLOR_NUM.accent,
         )
         .setInteractive({ useHandCursor: !blocker });
-      const icon = this.add.image(x, y, iconTexture(this, skillIcon(skill))).setScale(3.5);
+      const icon = fitImage(this.add.image(x, y, iconTexture(this, skillIcon(skill))), 58);
       if (blocker) icon.setTint(0x4a4677);
       const key = this.add.text(x - size / 2 + 4, y - size / 2 + 2, String(i + 1), {
         ...TEXT.tiny,
@@ -810,7 +816,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private headY(s: UnitSprite): number {
-    return s.root.y - 48 * s.scale * 0.75;
+    return s.root.y + s.rig.headY * 0.92;
   }
 
   private async animate(ev: RunEvent, next: RunView): Promise<void> {
@@ -821,7 +827,7 @@ export class BattleScene extends Phaser.Scene {
         const s = this.units.get(ev.unitId);
         if (!s) return;
         if (s.side === "merc") audio.play("turnStart");
-        this.tweens.add({ targets: s.sprite, y: -6, duration: animDuration(90), yoyo: true });
+        this.tweens.add({ targets: s.rig, y: -8, duration: animDuration(90), yoyo: true });
         return this.wait(s.side === "enemy" ? 140 : 60);
       }
       case "skill": {
@@ -842,7 +848,8 @@ export class BattleScene extends Phaser.Scene {
         const ranged = !(skill.from as number[]).includes(1);
         const caster =
           skill.kind === "support" || skill.element === "radiant" || skill.element === "void";
-        this.setPose(s, caster && (ranged || !hostile) ? "cast" : "attack");
+        s.rig.speed = 1 / animDuration(1);
+        void (caster && (ranged || !hostile) ? s.rig.cast() : s.rig.attack());
         this.label(s, skill.name, unitView?.side === "enemy" ? COLORS.danger : COLORS.accentPale);
         audio.play(this.skillSfx(unitView, skill.element, ranged, caster, hostile));
         if (hostile && !ranged) {
@@ -866,12 +873,12 @@ export class BattleScene extends Phaser.Scene {
         const t = this.units.get(ev.targetId);
         if (!t) return;
         const src = this.units.get(ev.sourceId);
-        this.setPose(t, "hurt");
-        t.sprite.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
-        this.time.delayedCall(animDuration(80), () => {
-          t.sprite.setTintMode(Phaser.TintModes.MULTIPLY);
+        t.rig.speed = 1 / animDuration(1);
+        void t.rig.hurt();
+        t.rig.flash(animDuration(80));
+        this.time.delayedCall(animDuration(90), () => {
           const u = this.findUnitView(t.id);
-          t.sprite.setTint(u && u.side === "enemy" && !u.lit ? 0x4a4677 : 0xffffff);
+          if (u) this.applyLight(t, u);
         });
         const dir = t.side === "merc" ? -1 : 1;
         this.tweens.add({
@@ -896,7 +903,6 @@ export class BattleScene extends Phaser.Scene {
           this.floatText(t.root.x + 40, this.headY(t) + 20, `◆${ev.absorbed}`, COLORS.info, 18);
         void src;
         await this.wait(230);
-        if (t.pose === "hurt") this.setPose(t, "idle0");
         return;
       }
       case "miss": {
@@ -990,7 +996,8 @@ export class BattleScene extends Phaser.Scene {
       case "downed": {
         const s = this.units.get(ev.unitId);
         if (!s) return;
-        this.setPose(s, "downed");
+        s.pose = "downed";
+        void s.rig.down();
         this.floatText(s.root.x, this.headY(s), "Downed", COLORS.danger, 24);
         audio.play("downed");
         return this.wait(350);
@@ -1013,7 +1020,8 @@ export class BattleScene extends Phaser.Scene {
       case "revived": {
         const s = this.units.get(ev.unitId);
         if (!s) return;
-        this.setPose(s, "idle0");
+        s.pose = "idle";
+        void s.rig.rise();
         this.floatText(s.root.x, this.headY(s), "Rekindled!", COLORS.accentBright, 24);
         audio.play("revive");
         return this.wait(300);

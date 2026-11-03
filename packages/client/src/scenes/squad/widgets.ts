@@ -155,7 +155,7 @@ export class OptionRow extends Phaser.GameObjects.Container {
     hit.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => this.setHover(false));
     hit.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (p: Phaser.Input.Pointer) => {
       // Left half of the control steps back, everything else steps forward.
-      const local = p.x - this.x;
+      const local = p.worldX - this.x;
       this.step(local < this.valueCenter - 24 && local > left - 16 ? -1 : 1);
     });
     this.valueGroup = scene.add.container(0, 0, [this.swatch, this.valueText]);

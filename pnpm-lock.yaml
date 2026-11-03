@@ -26,6 +26,12 @@ importers:
 
   packages/client:
     dependencies:
+      '@fontsource/alegreya-sans':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource/cinzel':
+        specifier: 5.3.0
+        version: 5.3.0
       '@fontsource/pixelify-sans':
         specifier: 5.3.0
         version: 5.3.0
@@ -284,6 +290,12 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fontsource/alegreya-sans@5.3.0':
+    resolution: {integrity: sha512-Uf0RbuwzhSS3NQrBFcRzEUm7TxDQW3qdAbQ6JIOhsIW6V+YN2dqlR99lhfEE38R3GHgMCMJBzqSp7aJxhNXSOw==}
+
+  '@fontsource/cinzel@5.3.0':
+    resolution: {integrity: sha512-KEOYTsrRppW0uRIPWBDPrQgunCS6f8u4nzZxYRBfo9SCknKojLYjK7B0ZoVmJhyVLefz271ZQRF9EOpHZlfhRw==}
 
   '@fontsource/pixelify-sans@5.3.0':
     resolution: {integrity: sha512-4RCe9nXbi7wUu5+H0FNX1sgPZ2kJ1MmY1uTkEfvQIzzqhoS8zGKJaJfdK8oreE0OU+5gM+NdurFi3H3FJRBvyw==}
@@ -946,6 +958,10 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@fontsource/alegreya-sans@5.3.0': {}
+
+  '@fontsource/cinzel@5.3.0': {}
 
   '@fontsource/pixelify-sans@5.3.0': {}
 

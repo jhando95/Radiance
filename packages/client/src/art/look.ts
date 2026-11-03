@@ -5,7 +5,7 @@
  * Phaser textures under stable keys.
  */
 import { getDiscipline, type Merc, type MercSetup, RARITIES } from "@radiance/core";
-import type * as Phaser from "phaser";
+import * as Phaser from "phaser";
 import {
   type ArmorWeight,
   type Discipline,
@@ -123,13 +123,19 @@ export function mercPortraitKey(look: MercLook): string {
 /** Generate (once) and register the 48x48 sprite for `look` in `pose`. Returns its key. */
 export function ensureMercTexture(scene: Phaser.Scene, look: MercLook, pose: MercPose): string {
   const key = mercTextureKey(look, pose);
-  if (!scene.textures.exists(key)) scene.textures.addCanvas(key, drawMerc(look, pose));
+  if (!scene.textures.exists(key))
+    scene.textures
+      .addCanvas(key, drawMerc(look, pose))
+      ?.setFilter(Phaser.Textures.FilterMode.NEAREST);
   return key;
 }
 
 /** Generate (once) and register the 24x24 portrait for `look`. Returns its key. */
 export function ensureMercPortrait(scene: Phaser.Scene, look: MercLook): string {
   const key = mercPortraitKey(look);
-  if (!scene.textures.exists(key)) scene.textures.addCanvas(key, drawMercPortrait(look));
+  if (!scene.textures.exists(key))
+    scene.textures
+      .addCanvas(key, drawMercPortrait(look))
+      ?.setFilter(Phaser.Textures.FilterMode.NEAREST);
   return key;
 }
