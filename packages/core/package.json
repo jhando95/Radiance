@@ -1,0 +1,17 @@
+{
+  "name": "@radiance/core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic, engine-agnostic game rules. No DOM, no Node APIs, no I/O.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "sim": "tsx scripts/simulate.ts"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  }
+}

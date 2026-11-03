@@ -1,0 +1,141 @@
+:root {
+  --bg: #0d0b14;
+  --panel: #1a1626;
+  --panel-2: #241e35;
+  --ink: #f2ead8;
+  --muted: #a49cb5;
+  --gold: #f5c45e;
+  --danger: #e0655a;
+  font-family: Georgia, "Times New Roman", serif;
+  color: var(--ink);
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  overflow: hidden;
+}
+#game {
+  position: fixed;
+  inset: 0;
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: radial-gradient(circle at 50% 30%, #2b2140 0%, var(--bg) 70%);
+}
+.overlay[hidden] {
+  display: none;
+}
+.card {
+  width: min(420px, 100%);
+  background: var(--panel);
+  border: 1px solid #3a3150;
+  border-radius: 12px;
+  padding: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+h1 {
+  margin: 0;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+.sub {
+  margin: 0 0 8px;
+  color: var(--muted);
+  text-align: center;
+  font-style: italic;
+}
+label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+input,
+select,
+button {
+  font: inherit;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #3a3150;
+}
+input,
+select {
+  background: var(--panel-2);
+  color: var(--ink);
+  min-width: 0;
+  width: 100%;
+}
+button {
+  background: var(--gold);
+  color: #1a1208;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+button.secondary {
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 1px solid #3a3150;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.row {
+  display: flex;
+  gap: 8px;
+}
+.row > * {
+  flex: 1;
+}
+.divider {
+  border-top: 1px solid #3a3150;
+  margin: 4px 0;
+}
+.code {
+  font-size: 32px;
+  letter-spacing: 0.2em;
+  text-align: center;
+  color: var(--gold);
+}
+.players {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.players li {
+  background: var(--panel-2);
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+.muted {
+  color: var(--muted);
+  font-size: 14px;
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  background: var(--danger);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 8px;
+  z-index: 10;
+}

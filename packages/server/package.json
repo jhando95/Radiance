@@ -1,0 +1,21 @@
+{
+  "name": "@radiance/server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Authoritative co-op room server. Runs @radiance/core and relays state over WebSockets.",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/server.js",
+    "build": "esbuild src/main.ts --bundle --platform=node --format=esm --target=node22 --external:ws --outfile=dist/server.js",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@radiance/core": "workspace:*",
+    "ws": "8.22.1"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.2",
+    "esbuild": "0.28.2"
+  }
+}
