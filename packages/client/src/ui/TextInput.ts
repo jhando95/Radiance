@@ -1,6 +1,6 @@
 /**
  * Text entry using a real DOM <input> (IME, paste, mobile keyboards for free), styled by
- * `.rad-input` in style.css to match the pixel UI. Requires `dom.createContainer: true`.
+ * `.rad-input` in style.css to match the HD UI. Requires `dom.createContainer: true`.
  * Keys typed into it never reach Phaser's keyboard handlers.
  */
 import * as Phaser from "phaser";
@@ -25,6 +25,9 @@ export interface TextInputOptions {
   onSubmit?: (value: string) => void;
   onCancel?: () => void;
 }
+
+/** Matches `.rad-input { height }` in style.css (logical px). */
+const INPUT_H = 46;
 
 export class TextInput {
   readonly el: HTMLInputElement;
@@ -67,7 +70,12 @@ export class TextInput {
     });
     el.addEventListener("keyup", (e) => e.stopPropagation());
 
-    this.dom = scene.add.dom(x, y, el).setOrigin(0.5);
+    // Origin 0: Phaser's DOM renderer mis-centres origin-0.5 elements under a zoomed camera
+    // (it offsets by origin*size before the zoom), so centre the element ourselves.
+    this.dom = scene.add.dom(x, y, el).setOrigin(0);
+    const w = opts.width ?? 280;
+    const h = this.dom.height || el.offsetHeight || INPUT_H;
+    this.dom.setPosition(Math.round(x - w / 2), Math.round(y - h / 2));
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroy());
     if (opts.autofocus) {
       scene.time.delayedCall(30, () => this.focus());

@@ -12,12 +12,12 @@ import * as Phaser from "phaser";
 import { iconTexture, TEX } from "../app/textures";
 import type { PanelVariant } from "./artAdapter";
 import { createPanel, resizePanel } from "./Panel";
-import { COLORS, DEPTH, DURATION, GAME_H, GAME_W, GRID, TEXT } from "./theme";
+import { COLOR_NUM, COLORS, DEPTH, DURATION, fontPx, GAME_H, GAME_W, GRID, TEXT } from "./theme";
 
 export interface TooltipLine {
   text: string;
   color?: string;
-  /** Icon id drawn at 2x before the text. */
+  /** Icon id drawn (28px) before the text. */
   icon?: string;
   size?: "body" | "small";
 }
@@ -29,14 +29,15 @@ export interface TooltipContent {
   subtitle?: string;
   lines?: ReadonlyArray<string | TooltipLine>;
   footer?: string;
-  /** Max width in px (default 320). */
+  /** Max width in px (default 340). */
   width?: number;
   variant?: PanelVariant;
 }
 
 export type TooltipSource = TooltipContent | (() => TooltipContent | null);
 
-const PAD = GRID * 2;
+const PAD = GRID * 2 + 4;
+const ICON = 28;
 
 class TooltipView {
   readonly root: Phaser.GameObjects.Container;
@@ -51,13 +52,12 @@ class TooltipView {
     this.root = scene.add
       .container(0, 0, [this.panel, this.body])
       .setDepth(DEPTH.tooltip)
-      .setScrollFactor(0)
       .setVisible(false);
   }
 
   show(c: TooltipContent, x: number, y: number): void {
     this.body.removeAll(true);
-    const maxW = c.width ?? 320;
+    const maxW = c.width ?? 340;
     const inner = maxW - PAD * 2;
     let cy = PAD - 2;
     let widest = 0;
@@ -84,11 +84,11 @@ class TooltipView {
     if ((c.title || c.subtitle) && lines.length > 0) {
       cy += GRID;
       const rule = this.scene.add
-        .rectangle(PAD, cy, 1, 3, 0x34305a)
+        .rectangle(PAD, cy, 1, 2, COLOR_NUM.accentDeep, 0.9)
         .setOrigin(0, 0)
         .setName("rule");
       this.body.add(rule);
-      cy += 3 + GRID;
+      cy += 2 + GRID;
     }
     for (const raw of lines) {
       const line: TooltipLine = typeof raw === "string" ? { text: raw } : raw;
@@ -98,21 +98,22 @@ class TooltipView {
         const icon = this.scene.add
           .image(PAD, cy + 2, iconTexture(this.scene, line.icon))
           .setOrigin(0, 0)
-          .setScale(2);
+          .setDisplaySize(ICON, ICON);
         this.body.add(icon);
-        dx = 32 + GRID;
+        dx = ICON + GRID;
       }
       const t = this.scene.add.text(0, 0, line.text, {
         ...style,
-        fontSize: line.size === "small" ? "16px" : "18px",
+        fontSize: line.size === "small" ? fontPx(16) : fontPx(18),
         color: line.color ?? style.color,
         wordWrap: { width: inner - dx },
+        lineSpacing: 2,
       });
       if (line.icon) {
         const before = cy;
         add(t, dx);
-        t.setY(before + Math.max(0, (36 - t.height) / 2));
-        cy = Math.max(cy, before + 36);
+        t.setY(before + Math.max(0, (ICON + 4 - t.height) / 2));
+        cy = Math.max(cy, before + ICON + 4);
       } else {
         add(t);
       }
@@ -128,10 +129,10 @@ class TooltipView {
         }),
       );
     }
-    this.w = Math.ceil((Math.min(maxW - PAD * 2, Math.max(widest, 120)) + PAD * 2) / 3) * 3;
-    this.h = Math.ceil((cy + PAD) / 3) * 3;
+    this.w = Math.ceil(Math.min(maxW - PAD * 2, Math.max(widest, 120)) + PAD * 2);
+    this.h = Math.ceil(cy + PAD - 2);
     const rule = this.body.getByName("rule") as Phaser.GameObjects.Rectangle | null;
-    rule?.setSize(this.w - PAD * 2, 3);
+    rule?.setSize(this.w - PAD * 2, 2);
     resizePanel(this.panel, this.w, this.h);
     this.panel.setTexture(TEX.panel(c.variant));
     this.moveTo(x, y);

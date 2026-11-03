@@ -3,7 +3,7 @@ import * as Phaser from "phaser";
 import { TEX } from "../app/textures";
 import { hexNum } from "../art/palette";
 import { Row, type RowOptions } from "./Row";
-import { COLORS, DURATION, GRID, playUiSound, TEXT, UI_SCALE } from "./theme";
+import { COLOR_NUM, COLORS, DURATION, GRID, playUiSound, TEXT, UI_SCALE } from "./theme";
 
 export interface SelectorOption<T> {
   value: T;
@@ -46,7 +46,7 @@ export class Selector<T> extends Row {
       .setScale(UI_SCALE)
       .setFlipX(true);
     this.right = scene.add.image(x1 - 8, -3, TEX.arrow).setScale(UI_SCALE);
-    this.valueText = scene.add.text(this.centerX, -4, "", TEXT.number).setOrigin(0.5);
+    this.valueText = scene.add.text(this.centerX, -5, "", TEXT.number).setOrigin(0.5);
     this.pips = scene.add.graphics();
     this.add([this.left, this.right, this.valueText, this.pips]);
     for (const [arrow, dir] of [
@@ -127,13 +127,13 @@ export class Selector<T> extends Row {
     const g = this.pips;
     g.clear();
     const n = this.options.length;
-    const pw = 9;
+    const pw = 12;
     const gap = 6;
     const total = n * pw + (n - 1) * gap;
     for (let i = 0; i < n; i++) {
       const on = i === this.index;
-      g.fillStyle(on ? 0xf2a93b : 0x34305a, 1);
-      g.fillRect(this.centerX - total / 2 + i * (pw + gap), 14, pw, 3);
+      g.fillStyle(on ? COLOR_NUM.accent : COLOR_NUM.line, 1);
+      g.fillRoundedRect(this.centerX - total / 2 + i * (pw + gap), 14, pw, 3, 1.5);
     }
   }
 }

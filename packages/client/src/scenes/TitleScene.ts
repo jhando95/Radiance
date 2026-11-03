@@ -7,14 +7,14 @@ import * as Phaser from "phaser";
 import { flow } from "../app/flow";
 import { SCENES } from "../app/scenes";
 import { getSettings, PLAYER_NAME_MAX, updateSettings } from "../app/settings";
-import { hasTexture, TEX } from "../app/textures";
+import { logoImage, TEX } from "../app/textures";
 import { goTo } from "../app/transitions";
 import { VERSION } from "../app/version";
 import { createMenuList, type MenuEntry } from "../ui/MenuList";
 import { promptDialog } from "../ui/Modal";
 import { addBackdrop } from "../ui/screen";
 import { toast } from "../ui/Toast";
-import { COLOR_NUM, COLORS, GAME_H, GAME_W, GRID, TEXT } from "../ui/theme";
+import { COLOR_NUM, COLORS, DISPLAY_FONT, fontPx, GAME_H, GAME_W, GRID, TEXT } from "../ui/theme";
 
 const NAME_ALLOW = /[\p{L}\p{N} _\-'.]/u;
 const CODE_ALLOW = /[A-Z0-9]/;
@@ -68,29 +68,25 @@ export class TitleScene extends Phaser.Scene {
       .setDepth(-39);
     this.flicker([glow, core]);
 
-    // Darken behind the menu so text reads against the horizon.
+    // Darken behind the menu so text reads against the sky art.
     this.add
-      .image(GAME_W / 2, 476, TEX.glow)
-      .setDisplaySize(620, 460)
+      .image(GAME_W / 2, 480, TEX.glow)
+      .setDisplaySize(760, 520)
       .setTint(COLOR_NUM.ink)
-      .setAlpha(0.75)
+      .setAlpha(0.8)
       .setDepth(-38);
 
     this.buildLogo();
     this.buildMenu();
 
-    this.add
-      .text(GRID * 3, GAME_H - GRID * 2, VERSION, TEXT.tiny)
-      .setOrigin(0, 1)
-      .setAlpha(0.7);
+    this.add.text(GRID * 3, GAME_H - GRID * 2, VERSION, TEXT.tiny).setOrigin(0, 1);
     this.add
       .text(GAME_W - GRID * 3, GAME_H - GRID * 2, "a game by jhando95", TEXT.tiny)
-      .setOrigin(1, 1)
-      .setAlpha(0.7);
+      .setOrigin(1, 1);
     this.add
       .text(GAME_W / 2, GAME_H - GRID * 2, "Arrows  select   ·   Enter  confirm", TEXT.tiny)
       .setOrigin(0.5, 1)
-      .setAlpha(0.55);
+      .setAlpha(0.85);
   }
 
   private flicker(targets: Phaser.GameObjects.Image[]): void {
@@ -110,27 +106,22 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private buildLogo(): void {
-    const y = 156;
-    let logo: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
-    if (hasTexture(this, TEX.logo)) {
-      logo = this.add.image(GAME_W / 2, y, TEX.logo).setScale(4);
-    } else {
-      logo = this.add
-        .text(GAME_W / 2, y, "RADIANCE", {
-          ...TEXT.display,
-          fontSize: "96px",
-          letterSpacing: 12,
-          stroke: COLORS.accentDeep,
-          strokeThickness: 6,
-          shadow: { offsetX: 0, offsetY: 6, color: COLORS.ink, blur: 0, fill: true, stroke: true },
-        })
-        .setOrigin(0.5);
-    }
+    const y = 150;
+    const logo = logoImage(this, GAME_W / 2, y, 660);
+    const bloom = this.add
+      .image(GAME_W / 2, y + 4, TEX.glow)
+      .setDisplaySize(logo.displayWidth * 1.25, logo.displayHeight * 1.6)
+      .setTint(COLOR_NUM.accent)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setAlpha(0);
     const sub = this.add
-      .text(GAME_W / 2, y + 76, "SCAVENGERS  OF  THE  SUNLESS  MOONS", {
+      .text(GAME_W / 2, y + logo.displayHeight / 2 + 18, "SCAVENGERS OF THE SUNLESS MOONS", {
         ...TEXT.small,
+        fontFamily: DISPLAY_FONT,
+        fontStyle: "700",
+        fontSize: fontPx(16, 0.5),
         color: COLORS.textDim,
-        letterSpacing: 4,
+        letterSpacing: 5,
       })
       .setOrigin(0.5);
     logo.setAlpha(0);
@@ -139,10 +130,20 @@ export class TitleScene extends Phaser.Scene {
       targets: logo,
       alpha: 1,
       y: { from: y + 12, to: y },
-      duration: 900,
+      duration: 1100,
       ease: "Quad.out",
     });
-    this.tweens.add({ targets: sub, alpha: 0.9, duration: 900, delay: 500 });
+    this.tweens.add({ targets: bloom, alpha: 0.22, duration: 1600, delay: 300 });
+    this.tweens.add({
+      targets: bloom,
+      alpha: { from: 0.22, to: 0.14 },
+      duration: 2600,
+      delay: 1900,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.inOut",
+    });
+    this.tweens.add({ targets: sub, alpha: 1, duration: 900, delay: 600 });
   }
 
   private buildMenu(): void {
@@ -164,9 +165,9 @@ export class TitleScene extends Phaser.Scene {
     );
     if (isDesktopApp()) entries.push({ label: "Quit", onSelect: () => quitApp() });
 
-    const spacing = entries.length > 7 ? 40 : 44;
-    const top = 300 + (7 - entries.length) * 10;
-    const menu = createMenuList(this, GAME_W / 2, top, entries, { spacing, width: 420 });
+    const spacing = entries.length > 7 ? 42 : 46;
+    const top = 318 + (7 - entries.length) * 10;
+    const menu = createMenuList(this, GAME_W / 2, top, entries, { spacing, width: 460 });
     menu.items.forEach((item, i) => {
       item.setAlpha(0);
       this.tweens.add({

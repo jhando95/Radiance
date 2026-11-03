@@ -410,16 +410,20 @@ export function ridge(
   const off = rnd() * 50;
   for (let x = x0; x <= x1 + step; x += step) {
     const sx = (x / 420) * freq + off;
-    let y = baseY - (fbm(n, sx, 0.5, 4) - 0.5) * 2 * amp;
-    y -= (rnd() - 0.5) * amp * 0.35 * jag;
-    pts.push([x, y]);
-  }
-  if (jag > 0.5) {
-    // sharpen: push every other point up a bit for crags
-    for (let i = 1; i < pts.length - 1; i += 2) {
-      const p = pts[i] as Pt;
-      pts[i] = [p[0] + (rnd() - 0.5) * step * 0.6, p[1] - rnd() * amp * 0.22 * jag];
+    // smooth rolling base + ridged (crag) octaves for mountains
+    const roll = fbm(n, sx, 0.5, 3) - 0.5;
+    let crag = 0;
+    let a = 0.5;
+    let f = 1.7;
+    for (let o = 0; o < 4; o++) {
+      const v = 1 - Math.abs(n(sx * f + 31, 7.3 + o) * 2 - 1);
+      crag += v * v * a;
+      a *= 0.5;
+      f *= 2.1;
     }
+    const h = roll * (1 - jag) * 2 + (crag - 0.35) * jag * 2.2;
+    const y = baseY - h * amp - (rnd() - 0.5) * amp * 0.06 * jag;
+    pts.push([x, y]);
   }
   return pts;
 }
@@ -556,8 +560,91 @@ export function starfield(
   ctx.restore();
 }
 
-/** New transparent layer + its context. */
+let mirrorLayers = false;
+/** While true, new layers are created with a horizontally mirrored base transform. */
+export function setMirror(on: boolean): void {
+  mirrorLayers = on;
+}
+
+/** New transparent layer + its context (mirrored when `setMirror(true)` is active). */
 export function layer(w = BW, h = BH): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = canvas(w, h);
-  return [c, ctx2d(c)];
+  const ctx = ctx2d(c);
+  if (mirrorLayers) ctx.setTransform(-1, 0, 0, 1, w, 0);
+  return [c, ctx];
+}
+
+/**
+ * Painterly surface mottling over everything already drawn in (x,y,w,h): a low-res fbm
+ * field of light and dark patches composited source-atop (keeps transparency).
+ */
+export function mottleAtop(
+  ctx: CanvasRenderingContext2D,
+  seed: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  light: string,
+  dark: string,
+  amount: number,
+  scale = 140,
+) {
+  const n = makeNoise(seed);
+  const lw = Math.max(8, Math.round(w / 5));
+  const lh = Math.max(8, Math.round(h / 5));
+  const [lr, lg, lb] = hexRgb(light);
+  const [dr, dg, db] = hexRgb(dark);
+  const c = pixelCanvas(lw, lh, (px, py) => {
+    const X = px * 5;
+    const Y = py * 5;
+    const v = fbm(n, X / scale, Y / (scale * 0.7), 4);
+    const fine = n(X / 9 + 100, Y / 9);
+    const t = v + (fine - 0.5) * 0.18;
+    if (t > 0.54) return rgba(lr, lg, lb, Math.min(1, (t - 0.54) * 3.2) * amount);
+    if (t < 0.46) return rgba(dr, dg, db, Math.min(1, (0.46 - t) * 3.2) * amount * 1.3);
+    return 0;
+  });
+  ctx.save();
+  ctx.globalCompositeOperation = "source-atop";
+  blit(ctx, c, x, y, w, h);
+  ctx.restore();
+}
+
+/**
+ * Chiaroscuro: darken everything already drawn toward `color`, except inside soft pools
+ * around the given lights (r = falloff radius, sy = vertical squash).
+ */
+export function shadeAtop(
+  ctx: CanvasRenderingContext2D,
+  color: string,
+  alpha: number,
+  lights: readonly { x: number; y: number; r: number; sy?: number; k?: number }[],
+) {
+  const { width: w, height: h } = ctx.canvas;
+  const m = canvas(w, h);
+  const mc = ctx2d(m);
+  // the mask is painted in the same (possibly mirrored) space as the layer
+  mc.setTransform(ctx.getTransform());
+  mc.fillStyle = withAlpha(color, alpha);
+  mc.fillRect(-w, -h, w * 3, h * 3);
+  mc.globalCompositeOperation = "destination-out";
+  for (const L of lights) {
+    mc.save();
+    mc.translate(L.x, L.y);
+    mc.scale(1, L.sy ?? 1);
+    const g = mc.createRadialGradient(0, 0, 0, 0, 0, L.r);
+    const k = L.k ?? 1;
+    g.addColorStop(0, `rgba(0,0,0,${k})`);
+    g.addColorStop(0.45, `rgba(0,0,0,${k * 0.6})`);
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    mc.fillStyle = g;
+    mc.fillRect(-L.r, -L.r, L.r * 2, L.r * 2);
+    mc.restore();
+  }
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = "source-atop";
+  ctx.drawImage(m, 0, 0);
+  ctx.restore();
 }

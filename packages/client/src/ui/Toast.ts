@@ -7,7 +7,7 @@ import { SCENES } from "../app/scenes";
 import { iconTexture } from "../app/textures";
 import { hexNum } from "../art/palette";
 import { createPanel } from "./Panel";
-import { COLORS, DEPTH, DURATION, GAME_W, GRID, playUiSound, TEXT } from "./theme";
+import { COLORS, DEPTH, DURATION, fontPx, GAME_W, GRID, playUiSound, TEXT } from "./theme";
 
 export type ToastKind = "info" | "error" | "success";
 
@@ -19,7 +19,8 @@ const KIND: Record<ToastKind, { color: string; icon: string }> = {
 
 const MAX = 4;
 const TOP = GRID * 3;
-const H = 54;
+const H = 56;
+const ICON = 30;
 const GAP = GRID;
 
 /** Toast stack bound to one scene. */
@@ -39,20 +40,21 @@ export class ToastLayer {
     const s = this.scene;
     const spec = KIND[kind];
     const text = s.add
-      .text(0, 0, message, { ...TEXT.body, fontSize: "18px", wordWrap: { width: 560 } })
+      .text(0, 0, message, { ...TEXT.body, fontSize: fontPx(19), wordWrap: { width: 560 } })
       .setOrigin(0, 0.5);
-    const h = Math.max(H, Math.ceil((text.height + 24) / 3) * 3);
-    const w = Math.ceil((text.width + 32 + 32 + GRID * 3) / 3) * 3;
+    const h = Math.max(H, Math.ceil(text.height + 28));
+    const w = Math.ceil(text.width + 24 + ICON + GRID * 2 + 28);
     const panel = createPanel(s, 0, 0, w, h, {
       variant: kind === "error" ? "default" : "inset",
     });
-    const stripe = s.add.rectangle(-w / 2 + 9, 0, 6, h - 24, hexNum(spec.color));
-    const icon = s.add.image(-w / 2 + 16 + 20, 0, iconTexture(s, spec.icon)).setScale(2);
-    text.setPosition(-w / 2 + 16 + 40 + GRID, 0);
+    const stripe = s.add.rectangle(-w / 2 + 10, 0, 4, h - 26, hexNum(spec.color));
+    const icon = s.add
+      .image(-w / 2 + 24 + ICON / 2, 0, iconTexture(s, spec.icon))
+      .setDisplaySize(ICON, ICON);
+    text.setPosition(-w / 2 + 24 + ICON + GRID * 2, 0);
     const c = s.add
       .container(GAME_W / 2, 0, [panel, stripe, icon, text])
       .setDepth(DEPTH.toast)
-      .setScrollFactor(0)
       .setSize(w, h)
       .setAlpha(0);
     c.setData("h", h);

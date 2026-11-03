@@ -1,10 +1,10 @@
 /** Slow-scrolling credits over the dimmed moon horizon. Any key / click returns. */
 import * as Phaser from "phaser";
 import { SCENES } from "../app/scenes";
-import { hasTexture, iconTexture, TEX } from "../app/textures";
+import { iconTexture, logoImage, TEX } from "../app/textures";
 import { VERSION } from "../app/version";
 import { addBackdrop, addKeyHint } from "../ui/screen";
-import { COLOR_NUM, COLORS, GAME_H, GAME_W, TEXT } from "../ui/theme";
+import { COLOR_NUM, COLORS, DISPLAY_FONT, fontPx, GAME_H, GAME_W, TEXT } from "../ui/theme";
 import { leaveSubScreen, type SubScreenData } from "./SettingsScene";
 
 type Line =
@@ -31,13 +31,15 @@ const CREDITS: Line[] = [
   { kind: "line", text: "TypeScript" },
   { kind: "line", text: "Vite" },
   { kind: "gap" },
-  { kind: "heading", text: "Typeface" },
-  { kind: "line", text: "Pixelify Sans" },
-  { kind: "small", text: "by Stefie Justprince · SIL Open Font License" },
+  { kind: "heading", text: "Typefaces" },
+  { kind: "line", text: "Cinzel" },
+  { kind: "small", text: "by Natanael Gama · SIL Open Font License" },
+  { kind: "line", text: "Alegreya Sans" },
+  { kind: "small", text: "by Juan Pablo del Peral, Huerta Tipográfica · SIL Open Font License" },
   { kind: "gap" },
   { kind: "heading", text: "Art" },
-  { kind: "line", text: "Every pixel drawn by code" },
-  { kind: "small", text: "Procedural sprites, icons and skies" },
+  { kind: "line", text: "Every stroke drawn by code" },
+  { kind: "small", text: "Procedural characters, icons and skies" },
   { kind: "gap" },
   { kind: "heading", text: "Inspired by" },
   { kind: "line", text: "Ranked tactics, ruined lanterns," },
@@ -91,24 +93,16 @@ export class CreditsScene extends Phaser.Scene {
     for (const line of CREDITS) {
       switch (line.kind) {
         case "logo": {
-          const obj = hasTexture(this, TEX.logo)
-            ? this.add.image(0, y, TEX.logo).setScale(3).setOrigin(0.5, 0)
-            : this.add
-                .text(0, y, "RADIANCE", {
-                  ...TEXT.display,
-                  letterSpacing: 10,
-                  stroke: COLORS.accentDeep,
-                  strokeThickness: 4,
-                })
-                .setOrigin(0.5, 0);
+          const obj = logoImage(this, 0, y, 520).setOrigin(0.5, 0);
           this.roll.add(obj);
-          y += obj.displayHeight + 12;
+          y += obj.displayHeight + 4;
           break;
         }
         case "heading": {
           const t = this.add
             .text(0, y, line.text.toUpperCase(), {
               ...TEXT.small,
+              fontFamily: DISPLAY_FONT,
               fontStyle: "700",
               color: COLORS.accent,
               letterSpacing: 3,
@@ -119,7 +113,10 @@ export class CreditsScene extends Phaser.Scene {
           break;
         }
         case "line": {
-          const t = this.add.text(0, y, line.text, { ...TEXT.subheading, fontSize: "24px" });
+          const t = this.add.text(0, y, line.text, {
+            ...TEXT.subheading,
+            fontSize: fontPx(26, 0.5),
+          });
           t.setOrigin(0.5, 0);
           this.roll.add(t);
           y += t.height + 4;
@@ -134,7 +131,9 @@ export class CreditsScene extends Phaser.Scene {
           break;
         }
         case "lamp": {
-          const img = this.add.image(0, y + 24, iconTexture(this, "ui_lamp")).setScale(4);
+          const img = this.add
+            .image(0, y + 24, iconTexture(this, "ui_lamp"))
+            .setDisplaySize(64, 64);
           const glow = this.add
             .image(0, y + 24, TEX.glow)
             .setDisplaySize(200, 200)

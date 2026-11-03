@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Radiance – HD environment, icon &amp; UI gallery</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #0d0b14;
+        color: #c9bfae;
+        font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace;
+      }
+      h1 {
+        color: #f2a93b;
+        font-size: 18px;
+        margin: 0 0 12px;
+      }
+      h2 {
+        color: #ffd36e;
+        font-size: 15px;
+        margin: 30px 0 10px;
+        border-bottom: 1px solid #231f3d;
+        padding-bottom: 4px;
+      }
+      h3 {
+        color: #8399ba;
+        font-size: 12px;
+        margin: 16px 0 6px;
+      }
+      canvas {
+        display: block;
+      }
+      .bdrow {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+      .bdrow canvas {
+        width: 924px;
+        height: auto;
+        border: 1px solid #231f3d;
+      }
+      .grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        padding: 6px 4px;
+        background: #15121e;
+        border: 1px solid #221d31;
+      }
+      .cell span {
+        font-size: 9px;
+        color: #8a8090;
+        max-width: 104px;
+        text-align: center;
+        word-break: break-all;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        align-items: flex-end;
+        margin-bottom: 10px;
+      }
+      .sample {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-start;
+      }
+      .sample span {
+        font-size: 10px;
+        color: #6f665c;
+      }
+      #timing {
+        color: #6fd28a;
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Radiance — HD environment, icon &amp; UI art</h1>
+    <div id="timing"></div>
+    <section id="backdrops"></section>
+    <section id="map"></section>
+    <section id="icons"></section>
+    <section id="ui"></section>
+    <script type="module" src="/src/art/hd/gallery-env.ts"></script>
+  </body>
+</html>

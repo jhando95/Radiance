@@ -3,17 +3,24 @@
  * shell widgets (pause, toast, modal, prompt, tooltip, widgets) for screenshots and testing.
  */
 import * as Phaser from "phaser";
+import { hdScale, RENDER_SCALE } from "../app/hires";
 import { SCENES } from "../app/scenes";
-import { enemyTexture, mercTexture } from "../app/textures";
+import { enemyTexture, iconImage, iconTexture, mercTexture, slotTexture } from "../app/textures";
+import { RigSprite } from "../art/hd/rig";
 import { RARITY_COLORS } from "../art/palette";
+import { enemyRig, hasHdEnemies, hasHdMercs, mercRigFromLook } from "../game/hdArt";
+import { sampleEnemyId, sampleMercLook } from "../ui/artAdapter";
 import { Button } from "../ui/Button";
 import { FocusGroup } from "../ui/focus";
 import { confirmDialog, promptDialog } from "../ui/Modal";
 import { createPanel } from "../ui/Panel";
+import { Selector } from "../ui/Selector";
+import { Slider } from "../ui/Slider";
 import { addBackdrop } from "../ui/screen";
 import { toast } from "../ui/Toast";
+import { Toggle } from "../ui/Toggle";
 import { attachTooltip, showTooltip } from "../ui/Tooltip";
-import { COLORS, GAME_H, GAME_W, TEXT } from "../ui/theme";
+import { COLORS, GAME_H, GAME_W, TEXT, type TextStyleName } from "../ui/theme";
 import { bindPauseKey, openPause } from "./PauseOverlay";
 
 export class DebugScene extends Phaser.Scene {
@@ -23,17 +30,78 @@ export class DebugScene extends Phaser.Scene {
     super({ key: SCENES.debug });
   }
 
+  /** Stand-in squad / enemies: HD rigs when available, else pixel sprites. */
+  private figure(x: number, feet: number, enemy: boolean, i: number): void {
+    if (enemy ? hasHdEnemies() : hasHdMercs()) {
+      const def = enemy ? enemyRig(sampleEnemyId(i, true)) : mercRigFromLook(sampleMercLook(i));
+      const k = Math.min(
+        (150 * RENDER_SCALE) / Math.max(def.height, 1),
+        (104 * RENDER_SCALE) / Math.max(def.width, 1),
+      );
+      new RigSprite(this, x, feet, def, { scale: hdScale(k), flip: enemy }).idle();
+      return;
+    }
+    const key = enemy ? enemyTexture(this, i) : mercTexture(this, i);
+    this.add.image(x, feet, key).setOrigin(0.5, 1).setScale(2);
+  }
+
+  /** Type specimen + widget gallery for visual checks (`?debug=widgets`). */
+  private widgetSheet(): void {
+    let y = 64;
+    for (const name of Object.keys(TEXT) as TextStyleName[]) {
+      const t = this.add.text(40, y, `${name} — The lamp gutters; Brann holds rank 1. 0123`, {
+        ...TEXT[name],
+        fontSize: name === "display" ? "40px" : TEXT[name].fontSize,
+      });
+      y += t.height + 6;
+    }
+    const px = 820;
+    const variants = ["default", "inset", "highlight"] as const;
+    variants.forEach((v, i) => {
+      createPanel(this, px + i * 140, 60, 124, 90, { variant: v, originX: 0, originY: 0 });
+      this.add.text(px + i * 140 + 62, 105, v, TEXT.small).setOrigin(0.5);
+    });
+    const rarities = [
+      undefined,
+      ...(Object.keys(RARITY_COLORS) as Array<keyof typeof RARITY_COLORS>),
+    ];
+    rarities.forEach((r, i) => {
+      this.add.image(px + 30 + i * 70, 200, slotTexture(this, r)).setScale(3);
+    });
+    const ids = ["ui_lamp", "ui_ore", "ui_cooldown", "item_lamp_oil", "node_boss", "ui_crown"];
+    ids.forEach((id, i) => {
+      this.add.image(px + 30 + i * 70, 280, iconTexture(this, id)).setScale(3);
+    });
+    [16, 24, 32, 48, 64].forEach((size, i) => {
+      iconImage(this, px + 20 + i * 76, 360, "ui_lamp", size);
+    });
+    const rows = [
+      new Slider(this, 760, 430, { label: "Master volume", width: 480, value: 0.8 }),
+      new Toggle(this, 760, 478, { label: "Screen shake", width: 480, value: true }),
+      new Selector(this, 760, 526, {
+        label: "Animation speed",
+        width: 480,
+        value: 1,
+        options: [0.5, 1, 1.5, 2].map((v) => ({ value: v, label: `${v}x` })),
+      }),
+    ];
+    new FocusGroup(this, rows, { initial: -1 });
+  }
+
   init(data: { mode?: string }): void {
     this.mode = data?.mode ?? "";
   }
 
   create(): void {
     addBackdrop(this, { seed: 3, dim: 0.2 });
-    for (let i = 0; i < 4; i++) {
-      this.add.image(520 - i * 112, 470, mercTexture(this, i)).setScale(2);
-      this.add.image(760 + i * 112, 470, enemyTexture(this, i)).setScale(2);
+    if (this.mode !== "widgets") {
+      for (let i = 0; i < 4; i++) {
+        this.figure(520 - i * 112, 540, false, i);
+        this.figure(760 + i * 112, 540, true, i);
+      }
     }
     this.add.text(24, 24, `debug: ${this.mode}`, TEXT.small);
+    if (this.mode === "widgets") this.widgetSheet();
     bindPauseKey(this);
 
     const t = (ms: number, fn: () => void) => this.time.delayedCall(ms, fn);

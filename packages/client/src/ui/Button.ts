@@ -1,14 +1,15 @@
 /**
- * Pixel-art button: 9-slice frame with idle/hover/pressed/disabled states, a label and an
- * optional icon. Focusable (hover and keyboard share the highlight).
+ * Button: an exact-size frame (HD UI kit, pixel fallback) with idle/hover/pressed/disabled
+ * states, a Cinzel label and an optional icon. Focusable (hover and keyboard share the
+ * highlight).
  */
 import * as Phaser from "phaser";
 import { buttonTexture, iconTexture } from "../app/textures";
-import type { ButtonState } from "./artAdapter";
+import type { ButtonKind, ButtonState } from "./artAdapter";
 import { FOCUS_REQUEST, type Focusable } from "./focus";
-import { COLORS, DURATION, GRID, playUiSound, TEXT, UI_SCALE } from "./theme";
+import { COLORS, DURATION, fontPx, GRID, playUiSound, TEXT } from "./theme";
 
-export type ButtonKind = "primary" | "secondary" | "danger";
+export type { ButtonKind } from "./artAdapter";
 
 export interface ButtonOptions {
   label: string;
@@ -16,7 +17,7 @@ export interface ButtonOptions {
   width?: number;
   height?: number;
   kind?: ButtonKind;
-  /** Icon id (see textures.iconTexture), drawn left of the label at 2x. */
+  /** Icon id (see textures.iconTexture), drawn left of the label at 28px. */
   icon?: string;
   disabled?: boolean;
   onClick?: () => void;
@@ -30,10 +31,14 @@ const LABEL_COLOR: Record<ButtonKind, { idle: string; hover: string }> = {
   danger: { idle: COLORS.danger, hover: "#ffd0b0" },
 };
 
+/** Cinzel sits a touch high in its em box; nudge labels down to look optically centered. */
+const LABEL_Y = 1;
+const ICON_SIZE = 28;
+
 export class Button extends Phaser.GameObjects.Container implements Focusable {
   readonly bg: Phaser.GameObjects.Image;
-  private readonly nw: number;
-  private readonly nh: number;
+  private readonly bw: number;
+  private readonly bh: number;
   readonly label: Phaser.GameObjects.Text;
   private icon: Phaser.GameObjects.Image | null = null;
   private hintText: Phaser.GameObjects.Text | null = null;
@@ -51,15 +56,18 @@ export class Button extends Phaser.GameObjects.Container implements Focusable {
     this.disabled = opts.disabled ?? false;
     this.onClick = opts.onClick;
 
-    this.nw = Math.round(w / UI_SCALE);
-    this.nh = Math.round(h / UI_SCALE);
-    this.bg = scene.add.image(0, 0, buttonTexture(scene, "idle", this.nw, this.nh));
-    this.bg.setScale(UI_SCALE);
-    this.label = scene.add.text(0, -1, opts.label, TEXT.button).setOrigin(0.5);
+    this.bw = Math.round(w);
+    this.bh = Math.round(h);
+    this.bg = scene.add.image(0, 0, this.frameKey("idle")).setDisplaySize(this.bw, this.bh);
+    // Small buttons get a slightly smaller label so it never crowds the frame.
+    const labelStyle = h < 40 ? { ...TEXT.button, fontSize: fontPx(17, 0.5) } : TEXT.button;
+    this.label = scene.add.text(0, LABEL_Y, opts.label, labelStyle).setOrigin(0.5);
     this.add([this.bg, this.label]);
 
     if (opts.icon) {
-      this.icon = scene.add.image(0, 0, iconTexture(scene, opts.icon)).setScale(2);
+      this.icon = scene.add
+        .image(0, 0, iconTexture(scene, opts.icon))
+        .setDisplaySize(ICON_SIZE, ICON_SIZE);
       this.add(this.icon);
     }
     if (opts.hint) {
@@ -94,14 +102,18 @@ export class Button extends Phaser.GameObjects.Container implements Focusable {
     scene.add.existing(this);
   }
 
+  private frameKey(state: ButtonState): string {
+    return buttonTexture(this.scene, state, this.bw, this.bh, this.kind);
+  }
+
   private layout(w: number): void {
     if (this.icon) {
       const gap = GRID;
-      const total = 32 + gap + this.label.width;
-      this.icon.setPosition(-total / 2 + 16, 0);
-      this.label.setPosition(-total / 2 + 32 + gap + this.label.width / 2, -1);
+      const total = ICON_SIZE + gap + this.label.width;
+      this.icon.setPosition(-total / 2 + ICON_SIZE / 2, 0);
+      this.label.setPosition(-total / 2 + ICON_SIZE + gap + this.label.width / 2, LABEL_Y);
     }
-    if (this.hintText) this.hintText.setPosition(w / 2 - 12, 0);
+    if (this.hintText) this.hintText.setPosition(w / 2 - 14, 0);
   }
 
   setLabel(text: string): this {
@@ -132,8 +144,8 @@ export class Button extends Phaser.GameObjects.Container implements Focusable {
   activate(): void {
     if (this.disabled) return;
     playUiSound("click");
-    this.bg.setTexture(buttonTexture(this.scene, "pressed", this.nw, this.nh));
-    this.label.setY(2);
+    this.bg.setTexture(this.frameKey("pressed")).setDisplaySize(this.bw, this.bh);
+    this.label.setY(LABEL_Y + 2);
     this.scene.time.delayedCall(DURATION.fast, () => {
       if (this.active) this.refresh();
     });
@@ -149,10 +161,10 @@ export class Button extends Phaser.GameObjects.Container implements Focusable {
         : this.focused
           ? "hover"
           : "idle";
-    this.bg.setTexture(buttonTexture(this.scene, state, this.nw, this.nh));
+    this.bg.setTexture(this.frameKey(state)).setDisplaySize(this.bw, this.bh);
     const c = LABEL_COLOR[this.kind];
     this.label.setColor(this.disabled ? COLORS.textMuted : this.focused ? c.hover : c.idle);
-    this.label.setY(state === "pressed" ? 2 : -1);
+    this.label.setY(state === "pressed" ? LABEL_Y + 2 : LABEL_Y);
     this.icon?.setAlpha(this.disabled ? 0.4 : 1);
     if (this.input) this.input.cursor = this.disabled ? "default" : "pointer";
   }

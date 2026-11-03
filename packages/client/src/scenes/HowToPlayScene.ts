@@ -3,15 +3,28 @@
  * builds & loot, co-op. Left/Right (or the buttons) change page, Esc goes back.
  */
 import * as Phaser from "phaser";
+import { hdScale, RENDER_SCALE } from "../app/hires";
 import { SCENES } from "../app/scenes";
 import { enemyTexture, iconTexture, mercTexture, TEX } from "../app/textures";
+import { RigSprite } from "../art/hd/rig";
 import { hexNum, RAMPS, RARITY_COLORS } from "../art/palette";
-import type { Rarity } from "../ui/artAdapter";
+import { enemyRig, hasHdEnemies, hasHdMercs, mercRigFromLook } from "../game/hdArt";
+import { type Rarity, sampleEnemyId, sampleMercLook } from "../ui/artAdapter";
 import { Button } from "../ui/Button";
 import { isTypingInDom } from "../ui/focus";
 import { createPanel } from "../ui/Panel";
 import { addBackdrop, addHeader } from "../ui/screen";
-import { COLOR_NUM, COLORS, DURATION, GAME_H, GAME_W, playUiSound, TEXT } from "../ui/theme";
+import {
+  COLOR_NUM,
+  COLORS,
+  DISPLAY_FONT,
+  DURATION,
+  fontPx,
+  GAME_H,
+  GAME_W,
+  playUiSound,
+  TEXT,
+} from "../ui/theme";
 import { leaveSubScreen, type SubScreenData } from "./SettingsScene";
 
 type C = Phaser.GameObjects.Container;
@@ -25,7 +38,12 @@ interface Page {
 
 const BANNER_W = 1104;
 const BANNER_H = 288;
+/** Pixel fallback sprites are 48px, shown at 2x. */
 const SPRITE_SCALE = 2;
+/** Standing height of HD figures in the banner (logical px). */
+const FIG_H = 132;
+/** Max footprint width of HD figures (ranks are ~104-112px apart). */
+const FIG_W = 104;
 
 const P1 = RAMPS.lamp[3];
 const P2 = RAMPS.crystal[4];
@@ -42,28 +60,24 @@ const PAGES: Page[] = [
     ],
     draw(scene, c, w, h) {
       const mid = w / 2;
-      const y = h / 2 + 20;
+      const feet = 222;
       const step = 112;
-      label(scene, c, mid - 2.5 * step, 40, "YOUR SQUAD", COLORS.accent);
-      label(scene, c, mid + 2.5 * step, 40, "ENEMIES", COLORS.danger);
+      label(scene, c, mid - 2.5 * step, 34, "YOUR SQUAD", COLORS.accent);
+      label(scene, c, mid + 2.5 * step, 34, "ENEMIES", COLORS.danger);
       for (let r = 1; r <= 4; r++) {
         const mx = mid - 48 - (r - 1) * step - 32;
         const ex = mid + 48 + (r - 1) * step + 32;
-        sprite(scene, c, mx, y, mercTexture(scene, r - 1), false);
-        sprite(scene, c, ex, y, enemyTexture(scene, r - 1), true);
-        rankBadge(scene, c, mx, y + 72, r, COLORS.accent);
-        rankBadge(scene, c, ex, y + 72, r, COLORS.danger);
+        figure(scene, c, mx, feet, "merc", r - 1);
+        figure(scene, c, ex, feet, "enemy", r - 1);
+        rankBadge(scene, c, mx, feet + 28, r, COLORS.accent);
+        rankBadge(scene, c, ex, feet + 28, r, COLORS.danger);
       }
       // front line marker
       const g = scene.add.graphics();
       g.fillStyle(hexNum(RAMPS.lamp[2]), 0.6);
-      for (let yy = 64; yy < h - 40; yy += 12) g.fillRect(mid - 1, yy, 3, 6);
+      for (let yy = 56; yy < h - 44; yy += 12) g.fillRect(mid - 1, yy, 2, 6);
       c.add(g);
-      c.add(
-        scene.add
-          .text(mid, h - 28, "FRONT", { ...TEXT.tiny, color: COLORS.accent, letterSpacing: 2 })
-          .setOrigin(0.5),
-      );
+      label(scene, c, mid, h - 26, "FRONT", COLORS.accent);
     },
   },
   {
@@ -101,14 +115,14 @@ const PAGES: Page[] = [
           scene.add
             .text(x + 16, 83, name, {
               ...TEXT.body,
-              fontSize: "18px",
+              fontSize: fontPx(19, 0.5),
               color: enemy ? COLORS.danger : COLORS.text,
             })
             .setOrigin(0, 0.5),
         );
         c.add(
           scene.add
-            .text(x + chipW - 14, 83, `${spd}`, { ...TEXT.number, fontSize: "18px" })
+            .text(x + chipW - 16, 83, `${spd}`, { ...TEXT.number, fontSize: fontPx(19, 0.5) })
             .setOrigin(1, 0.5),
         );
         if (i < order.length - 1) {
@@ -126,9 +140,9 @@ const PAGES: Page[] = [
       const cx = (w - cw) / 2;
       const cy = 136;
       c.add(createPanel(scene, cx, cy, cw, 126, { originX: 0, originY: 0 }));
-      c.add(scene.add.text(cx + 24, cy + 20, "Lantern Bash", TEXT.subheading));
+      c.add(scene.add.text(cx + 24, cy + 16, "Lantern Bash", TEXT.subheading));
       c.add(
-        scene.add.text(cx + 24, cy + 50, "Heavy blow. Lights the target.", {
+        scene.add.text(cx + 24, cy + 48, "Heavy blow. Lights the target.", {
           ...TEXT.small,
           color: COLORS.textDim,
         }),
@@ -136,7 +150,9 @@ const PAGES: Page[] = [
       pips(scene, c, cx + 24, cy + 92, [true, true, false, false], COLORS.accent, "USE");
       pips(scene, c, cx + 200, cy + 92, [true, true, false, false], COLORS.danger, "HIT");
       const cdx = cx + cw - 140;
-      c.add(scene.add.image(cdx, cy + 92, iconTexture(scene, "ui_cooldown")).setScale(2));
+      c.add(
+        scene.add.image(cdx, cy + 92, iconTexture(scene, "ui_cooldown")).setDisplaySize(28, 28),
+      );
       c.add(
         scene.add
           .text(cdx + 24, cy + 92, "2 turns", { ...TEXT.small, color: COLORS.info })
@@ -155,6 +171,7 @@ const PAGES: Page[] = [
     ],
     draw(scene, c, w, h) {
       const y = h / 2 + 30;
+      const feet = 230;
       const step = 104;
       // light pool from the squad's lamp, reaching enemy ranks 1-2
       const pool = scene.add
@@ -173,43 +190,29 @@ const PAGES: Page[] = [
         repeatDelay: 900,
       });
       for (let r = 1; r <= 2; r++) {
-        sprite(scene, c, w / 2 - 80 - (r - 1) * step, y, mercTexture(scene, r - 1), false);
+        figure(scene, c, w / 2 - 80 - (r - 1) * step, feet, "merc", r - 1);
       }
-      c.add(scene.add.image(w / 2 - 36, y - 6, iconTexture(scene, "ui_lamp")).setScale(2));
+      c.add(
+        scene.add.image(w / 2 - 34, y - 6, iconTexture(scene, "ui_lamp")).setDisplaySize(32, 32),
+      );
       for (let r = 1; r <= 4; r++) {
         const x = w / 2 + 60 + (r - 1) * step;
         const lit = r <= 2;
-        const s = sprite(scene, c, x, y, enemyTexture(scene, r - 1), true);
-        if (!lit) s.setTint(hexNum(RAMPS.void[3]));
-        healthBar(scene, c, x, y - 64, lit ? 0.7 - r * 0.15 : null);
+        const fig = figure(scene, c, x, feet, "enemy", r - 1);
+        if (!lit) fig.setDark();
+        healthBar(scene, c, x, Math.max(26, fig.top - 12), lit ? 0.7 - r * 0.15 : null);
       }
       // radius bracket
       const bx0 = w / 2 + 60 - 44;
       const bx1 = w / 2 + 60 + step + 44;
       const g = scene.add.graphics();
       g.fillStyle(hexNum(RAMPS.lamp[3]), 1);
-      g.fillRect(bx0, h - 44, bx1 - bx0, 3);
-      g.fillRect(bx0, h - 52, 3, 11);
-      g.fillRect(bx1 - 3, h - 52, 3, 11);
+      g.fillRect(bx0, h - 46, bx1 - bx0, 2);
+      g.fillRect(bx0, h - 54, 2, 10);
+      g.fillRect(bx1 - 2, h - 54, 2, 10);
       c.add(g);
-      c.add(
-        scene.add
-          .text((bx0 + bx1) / 2, h - 26, "LIGHT RADIUS 2", {
-            ...TEXT.tiny,
-            color: COLORS.accent,
-            letterSpacing: 2,
-          })
-          .setOrigin(0.5),
-      );
-      c.add(
-        scene.add
-          .text(w / 2 + 60 + 2.5 * step, h - 26, "IN THE DARK", {
-            ...TEXT.tiny,
-            color: COLORS.umbra,
-            letterSpacing: 2,
-          })
-          .setOrigin(0.5),
-      );
+      label(scene, c, (bx0 + bx1) / 2, h - 26, "LIGHT RADIUS 2", COLORS.accent);
+      label(scene, c, w / 2 + 60 + 2.5 * step, h - 26, "IN THE DARK", COLORS.umbra);
       // lamp charge meter
       lampMeter(scene, c, 32, 32, 0.62);
     },
@@ -236,10 +239,10 @@ const PAGES: Page[] = [
       label(scene, c, x0 + 2 * step + 30, 30, "EQUIPMENT", COLORS.textDim);
       slots.forEach(([name, rarity, icon], i) => {
         const x = x0 + 30 + i * step;
-        c.add(scene.add.image(x, 112, TEX.slot(rarity)).setScale(3));
-        c.add(scene.add.image(x, 112, iconTexture(scene, icon)).setScale(3));
+        c.add(scene.add.image(x, 112, TEX.slot(rarity)).setDisplaySize(72, 72));
+        c.add(scene.add.image(x, 112, iconTexture(scene, icon)).setDisplaySize(52, 52));
         c.add(
-          scene.add.text(x, 160, name, { ...TEXT.small, color: COLORS.textDim }).setOrigin(0.5),
+          scene.add.text(x, 166, name, { ...TEXT.small, color: COLORS.textDim }).setOrigin(0.5),
         );
       });
       // rarity ladder
@@ -250,7 +253,7 @@ const PAGES: Page[] = [
           scene.add
             .text(x0 + 30 + i * step, 240, r[0]?.toUpperCase() + r.slice(1), {
               ...TEXT.small,
-              fontStyle: "600",
+              fontStyle: "800",
               color,
             })
             .setOrigin(0.5),
@@ -265,8 +268,8 @@ const PAGES: Page[] = [
           color: RARITY_COLORS.relic,
         }),
       );
-      c.add(scene.add.text(tx + 20, 82, "Lamp · Relic", { ...TEXT.small }));
-      c.add(scene.add.rectangle(tx + 20, 110, 320, 3, 0x34305a).setOrigin(0));
+      c.add(scene.add.text(tx + 20, 84, "Lamp · Relic", { ...TEXT.small }));
+      c.add(scene.add.rectangle(tx + 20, 112, 320, 2, COLOR_NUM.accentDeep).setOrigin(0));
       const lines: Array<[string, string]> = [
         ["+1 Light radius", COLORS.text],
         ["Lamp drains 15% slower", COLORS.text],
@@ -275,7 +278,11 @@ const PAGES: Page[] = [
       ];
       lines.forEach(([t, col], i) => {
         c.add(
-          scene.add.text(tx + 20, 124 + i * 28, t, { ...TEXT.body, fontSize: "18px", color: col }),
+          scene.add.text(tx + 20, 124 + i * 28, t, {
+            ...TEXT.body,
+            fontSize: fontPx(18, 0.4),
+            color: col,
+          }),
         );
       });
     },
@@ -289,26 +296,28 @@ const PAGES: Page[] = [
       "Loot goes into a shared stash. Divide it fairly — or don't.",
       "Host a room and share the 4-letter code, or join a friend's room from the title screen.",
     ],
-    draw(scene, c, w, h) {
-      const y = h / 2 + 24;
+    draw(scene, c, w) {
+      const feet = 236;
       const step = 100;
       for (let i = 0; i < 4; i++) {
         const x = 96 + i * step;
-        sprite(scene, c, x, y, mercTexture(scene, 3 - i), false);
+        const fig = figure(scene, c, x, feet, "merc", 3 - i);
         const color = i < 2 ? P2 : P1;
+        const by = Math.max(30, fig.top - 20);
         const badge = scene.add.graphics();
-        badge.fillStyle(COLOR_NUM.ink, 1);
-        badge.fillRect(x - 30, y - 84, 60, 26);
+        badge.fillStyle(COLOR_NUM.ink, 0.9);
+        badge.fillRoundedRect(x - 26, by - 14, 52, 28, 8);
         badge.fillStyle(hexNum(color), 1);
-        badge.fillRect(x - 27, y - 81, 54, 20);
+        badge.fillRoundedRect(x - 23, by - 11, 46, 22, 6);
         c.add(badge);
         c.add(
           scene.add
-            .text(x, y - 72, i < 2 ? "P2" : "P1", {
+            .text(x, by, i < 2 ? "P2" : "P1", {
               ...TEXT.small,
-              fontStyle: "700",
+              fontFamily: DISPLAY_FONT,
+              fontStyle: "900",
               color: COLORS.ink,
-              shadow: undefined,
+              shadow: { offsetX: 0, offsetY: 0, color: "rgba(0,0,0,0)", blur: 0 },
             })
             .setOrigin(0.5),
         );
@@ -337,17 +346,19 @@ const PAGES: Page[] = [
       }
       c.add(g);
       nodes.forEach(([nx, ny], i) => {
-        c.add(scene.add.image(nx, ny, TEX.slot(i === 0 ? "relic" : undefined)).setScale(3));
+        c.add(
+          scene.add.image(nx, ny, TEX.slot(i === 0 ? "relic" : undefined)).setDisplaySize(60, 60),
+        );
         const icon = ["node_start", "node_cache", "node_elite", "node_boss"][i] ?? "node_combat";
-        c.add(scene.add.image(nx, ny, iconTexture(scene, icon)).setScale(2));
+        c.add(scene.add.image(nx, ny, iconTexture(scene, icon)).setDisplaySize(36, 36));
       });
       // votes
       const vote = (nx: number, ny: number, color: string, k: number) => {
         const d = scene.add.graphics();
         d.fillStyle(COLOR_NUM.ink, 1);
-        d.fillRect(nx + 26 + k * 18, ny - 34, 15, 15);
+        d.fillCircle(nx + 34 + k * 18, ny - 27, 8);
         d.fillStyle(hexNum(color), 1);
-        d.fillRect(nx + 29 + k * 18, ny - 31, 9, 9);
+        d.fillCircle(nx + 34 + k * 18, ny - 27, 5.5);
         c.add(d);
       };
       const n1 = nodes[1];
@@ -357,16 +368,12 @@ const PAGES: Page[] = [
         vote(n1[0], n1[1], P2, 1);
         vote(n2[0], n2[1], RAMPS.toxic[4], 0);
       }
-      c.add(scene.add.image(mx + 400, 236, iconTexture(scene, "item_trinket_coin")).setScale(3));
       c.add(
         scene.add
-          .text(mx + 400, 272, "SHARED STASH", {
-            ...TEXT.tiny,
-            color: COLORS.info,
-            letterSpacing: 2,
-          })
-          .setOrigin(0.5),
+          .image(mx + 400, 232, iconTexture(scene, "item_trinket_coin"))
+          .setDisplaySize(44, 44),
       );
+      label(scene, c, mx + 400, 268, "SHARED STASH", COLORS.info);
     },
   },
 ];
@@ -374,37 +381,92 @@ const PAGES: Page[] = [
 function label(scene: Phaser.Scene, c: C, x: number, y: number, text: string, color: string) {
   c.add(
     scene.add
-      .text(x, y, text, { ...TEXT.tiny, fontStyle: "700", color, letterSpacing: 3 })
+      .text(x, y, text, {
+        ...TEXT.tiny,
+        fontFamily: DISPLAY_FONT,
+        fontStyle: "700",
+        color,
+        letterSpacing: 2.5,
+      })
       .setOrigin(0.5),
   );
 }
 
-function sprite(
+interface Figure {
+  /** Top of the figure (logical px, container space). */
+  top: number;
+  /** Sink the figure into darkness (unlit enemies). */
+  setDark(): void;
+}
+
+/**
+ * A squad member / enemy standing with feet at (x, feet): an animated HD rig when the HD
+ * character modules exist, else the pixel sprite. Mercs face right, enemies face left.
+ */
+function figure(
   scene: Phaser.Scene,
   c: C,
   x: number,
-  y: number,
-  key: string,
-  enemy: boolean,
-): Phaser.GameObjects.Image {
-  // Merc art faces right and enemy art faces left already; `enemy` only affects idle timing.
-  const img = scene.add.image(x, y, key).setScale(SPRITE_SCALE);
+  feet: number,
+  side: "merc" | "enemy",
+  index: number,
+): Figure {
+  const hd = side === "merc" ? hasHdMercs() : hasHdEnemies();
+  if (hd) {
+    try {
+      const def =
+        side === "merc"
+          ? mercRigFromLook(sampleMercLook(index))
+          : enemyRig(sampleEnemyId(index, true));
+      const k = Math.min(
+        (FIG_H * RENDER_SCALE) / Math.max(def.height, 1),
+        (FIG_W * RENDER_SCALE) / Math.max(def.width, 1),
+      );
+      const rig = new RigSprite(scene, x, feet, def, { scale: hdScale(k), flip: side === "enemy" });
+      rig.idle();
+      c.add(rig);
+      return {
+        top: feet - def.height * hdScale(k),
+        setDark: () => {
+          rig.setTintAll(hexNum(RAMPS.void[4]));
+          rig.setAlpha(0.85);
+        },
+      };
+    } catch (err) {
+      console.warn("HD figure failed; using pixel art", err);
+    }
+  }
+  // Pixel fallback: merc art faces right and enemy art faces left already.
+  const key = side === "merc" ? mercTexture(scene, index) : enemyTexture(scene, index);
+  const img = scene.add
+    .image(x, feet + 4, key)
+    .setOrigin(0.5, 1)
+    .setScale(SPRITE_SCALE);
   c.add(img);
   scene.tweens.add({
     targets: img,
-    y: y - 2,
-    duration: (enemy ? 1100 : 900) + Math.random() * 300,
+    y: img.y - 2,
+    duration: (side === "enemy" ? 1100 : 900) + Math.random() * 300,
     yoyo: true,
     repeat: -1,
     ease: "Stepped",
     easeParams: [2],
   });
-  return img;
+  return { top: feet - 92, setDark: () => img.setTint(hexNum(RAMPS.void[3])) };
 }
 
 function rankBadge(scene: Phaser.Scene, c: C, x: number, y: number, r: number, color: string) {
-  c.add(createPanel(scene, x, y, 42, 36, { variant: "inset" }));
-  c.add(scene.add.text(x, y - 1, `${r}`, { ...TEXT.number, color }).setOrigin(0.5));
+  const g = scene.add.graphics();
+  g.fillStyle(COLOR_NUM.ink, 0.9);
+  g.fillCircle(x, y, 16);
+  g.lineStyle(2, hexNum(color), 0.9);
+  g.strokeCircle(x, y, 15);
+  c.add(g);
+  c.add(
+    scene.add
+      .text(x, y, `${r}`, { ...TEXT.number, fontFamily: DISPLAY_FONT, fontStyle: "700", color })
+      .setOrigin(0.5),
+  );
 }
 
 function pips(
@@ -416,14 +478,24 @@ function pips(
   color: string,
   text: string,
 ) {
-  c.add(scene.add.text(x, y, text, { ...TEXT.tiny, fontStyle: "700", color }).setOrigin(0, 0.5));
+  c.add(
+    scene.add
+      .text(x, y, text, {
+        ...TEXT.tiny,
+        fontFamily: DISPLAY_FONT,
+        fontStyle: "700",
+        color,
+        letterSpacing: 1.5,
+      })
+      .setOrigin(0, 0.5),
+  );
   const g = scene.add.graphics();
   on.forEach((v, i) => {
-    const px = x + 40 + i * 22;
+    const px = x + 48 + i * 22;
     g.fillStyle(COLOR_NUM.ink, 1);
-    g.fillRect(px, y - 9, 18, 18);
+    g.fillCircle(px + 9, y, 9);
     g.fillStyle(v ? hexNum(color) : hexNum(RAMPS.void[3]), 1);
-    g.fillRect(px + 3, y - 6, 12, 12);
+    g.fillCircle(px + 9, y, 6);
   });
   c.add(g);
 }
@@ -431,47 +503,55 @@ function pips(
 function healthBar(scene: Phaser.Scene, c: C, x: number, y: number, frac: number | null) {
   const w = 72;
   const g = scene.add.graphics();
-  g.fillStyle(COLOR_NUM.ink, 1);
-  g.fillRect(x - w / 2 - 3, y - 6, w + 6, 12);
+  g.fillStyle(COLOR_NUM.ink, 0.95);
+  g.fillRoundedRect(x - w / 2 - 3, y - 6, w + 6, 12, 5);
   g.fillStyle(hexNum(RAMPS.void[2]), 1);
-  g.fillRect(x - w / 2, y - 3, w, 6);
+  g.fillRoundedRect(x - w / 2, y - 3, w, 6, 3);
   if (frac !== null) {
     g.fillStyle(hexNum(RAMPS.rust[3]), 1);
-    g.fillRect(x - w / 2, y - 3, Math.round(w * frac), 6);
+    g.fillRoundedRect(x - w / 2, y - 3, Math.round(w * frac), 6, 3);
+    g.fillStyle(hexNum(RAMPS.rust[4]), 1);
+    g.fillRect(x - w / 2 + 2, y - 3, Math.round(w * frac) - 4, 2);
   }
   c.add(g);
   if (frac === null) {
     c.add(
       scene.add
-        .text(x, y - 20, "???", { ...TEXT.tiny, fontStyle: "700", color: COLORS.umbra })
+        .text(x, y - 18, "???", { ...TEXT.tiny, fontStyle: "800", color: COLORS.umbra })
         .setOrigin(0.5),
     );
   }
 }
 
 function lampMeter(scene: Phaser.Scene, c: C, x: number, y: number, frac: number) {
-  c.add(scene.add.image(x + 16, y + 12, iconTexture(scene, "ui_lamp")).setScale(2));
+  c.add(scene.add.image(x + 14, y + 12, iconTexture(scene, "ui_lamp")).setDisplaySize(28, 28));
   c.add(
     scene.add
-      .text(x + 40, y + 12, "LAMP", { ...TEXT.tiny, fontStyle: "700", color: COLORS.accent })
+      .text(x + 36, y + 12, "LAMP", {
+        ...TEXT.tiny,
+        fontFamily: DISPLAY_FONT,
+        fontStyle: "700",
+        color: COLORS.accent,
+        letterSpacing: 1.5,
+      })
       .setOrigin(0, 0.5),
   );
   const g = scene.add.graphics();
-  const bx = x + 88;
+  const bx = x + 92;
   const cells = 10;
-  g.fillStyle(COLOR_NUM.ink, 1);
-  g.fillRect(bx - 3, y + 3, cells * 15 + 3, 18);
+  g.fillStyle(COLOR_NUM.ink, 0.95);
+  g.fillRoundedRect(bx - 4, y + 2, cells * 15 + 5, 20, 5);
   for (let i = 0; i < cells; i++) {
     const on = i < Math.round(frac * cells);
     g.fillStyle(on ? hexNum(RAMPS.lamp[i < 3 ? 2 : 3]) : hexNum(RAMPS.void[2]), 1);
-    g.fillRect(bx + i * 15, y + 6, 12, 12);
+    g.fillRoundedRect(bx + i * 15, y + 6, 12, 12, 2);
   }
   c.add(g);
   c.add(
     scene.add
       .text(bx + cells * 15 + 12, y + 12, `${Math.round(frac * 100)}%`, {
         ...TEXT.number,
-        fontSize: "16px",
+        fontSize: fontPx(17, 0.5),
       })
       .setOrigin(0, 0.5),
   );
@@ -523,7 +603,7 @@ export class HowToPlayScene extends Phaser.Scene {
       onClick: () => this.go(1),
     });
     this.dots = this.add.graphics();
-    this.pageLabel = this.add.text(GAME_W / 2, footY + 18, "", { ...TEXT.tiny }).setOrigin(0.5);
+    this.pageLabel = this.add.text(GAME_W / 2, footY + 16, "", { ...TEXT.tiny }).setOrigin(0.5);
 
     this.input.keyboard?.on("keydown", (e: KeyboardEvent) => {
       if (isTypingInDom()) return;
@@ -583,7 +663,9 @@ export class HowToPlayScene extends Phaser.Scene {
         .text(GAME_W - bx - 8, ty + 2, page.tagline, { ...TEXT.small, color: COLORS.textDim })
         .setOrigin(1, 0.5),
     );
-    c.add(this.add.rectangle(bx + 8, ty + 24, BANNER_W - 16, 3, 0x231f3d).setOrigin(0, 0));
+    c.add(
+      this.add.rectangle(bx + 8, ty + 24, BANNER_W - 16, 2, COLOR_NUM.line, 0.7).setOrigin(0, 0),
+    );
 
     // Bullets in two columns.
     const colW = (BANNER_W - 48) / 2;
@@ -593,11 +675,14 @@ export class HowToPlayScene extends Phaser.Scene {
       const row = col === 0 ? i : i - half;
       const x = bx + 8 + col * (colW + 32);
       const y = ty + 44 + row * 76;
-      const mark = this.add.rectangle(x + 4, y + 11, 9, 9, COLOR_NUM.accent).setOrigin(0, 0);
+      const mark = this.add
+        .rectangle(x + 8, y + 13, 7, 7, COLOR_NUM.accent)
+        .setAngle(45)
+        .setOrigin(0.5);
       const t = this.add.text(x + 24, y, b, {
         ...TEXT.body,
-        fontSize: "18px",
-        lineSpacing: 6,
+        fontSize: fontPx(19, 0.6),
+        lineSpacing: 4,
         wordWrap: { width: colW - 28 },
       });
       c.add([mark, t]);
@@ -614,15 +699,17 @@ export class HowToPlayScene extends Phaser.Scene {
     const g = this.dots;
     g.clear();
     const size = 12;
-    const gap = 12;
+    const gap = 14;
     const total = n * size + (n - 1) * gap;
-    const x0 = GAME_W / 2 - total / 2;
-    const y = GAME_H - 56 - 10;
+    const x0 = GAME_W / 2 - total / 2 + size / 2;
+    const y = GAME_H - 56 - 8;
     for (let i = 0; i < n; i++) {
+      const cx = x0 + i * (size + gap);
+      const on = i === this.page;
       g.fillStyle(COLOR_NUM.ink, 1);
-      g.fillRect(x0 + i * (size + gap) - 3, y - 3, size + 6, size + 6);
-      g.fillStyle(i === this.page ? COLOR_NUM.accent : hexNum(RAMPS.void[3]), 1);
-      g.fillRect(x0 + i * (size + gap), y, size, size);
+      g.fillCircle(cx, y, size / 2 + 2);
+      g.fillStyle(on ? COLOR_NUM.accent : hexNum(RAMPS.void[4]), 1);
+      g.fillCircle(cx, y, on ? size / 2 : size / 2 - 2);
     }
     this.pageLabel.setText(`${this.page + 1} / ${n}`);
   }

@@ -12,6 +12,8 @@ import {
   PLAYER_NAME_MAX,
   resetSettings,
   type Settings,
+  TEXT_SIZES,
+  type TextSize,
   updateSettings,
 } from "../app/settings";
 import { goTo } from "../app/transitions";
@@ -26,7 +28,16 @@ import { addBackdrop, addHeader, addKeyHint } from "../ui/screen";
 import { TextField } from "../ui/TextInput";
 import { toast } from "../ui/Toast";
 import { Toggle } from "../ui/Toggle";
-import { COLOR_NUM, COLORS, GAME_H, GAME_W, GRID, playUiSound, TEXT } from "../ui/theme";
+import {
+  COLOR_NUM,
+  COLORS,
+  DISPLAY_FONT,
+  GAME_H,
+  GAME_W,
+  GRID,
+  playUiSound,
+  TEXT,
+} from "../ui/theme";
 
 export interface SubScreenData {
   /** Scene to return to (default: title). */
@@ -34,6 +45,13 @@ export interface SubScreenData {
   /** Running above a paused/sleeping scene: Back stops this scene and wakes `returnTo`. */
   overlay?: boolean;
 }
+
+interface SettingsData extends SubScreenData {
+  /** Focus this row index on create (used when the scene rebuilds for a text size change). */
+  focus?: number;
+}
+
+const TEXT_SIZE_LABEL: Record<TextSize, string> = { normal: "Normal", large: "Large" };
 
 /** Shared Back behaviour for shell sub-screens (settings, how to play, credits). */
 export function leaveSubScreen(scene: Phaser.Scene, data: SubScreenData): void {
@@ -53,7 +71,7 @@ const COL_W = 504;
 const ROW_H = 48;
 
 export class SettingsScene extends Phaser.Scene {
-  private data_: SubScreenData = {};
+  private data_: SettingsData = {};
   private hint!: Phaser.GameObjects.Text;
   private controls: {
     master?: Slider;
@@ -64,6 +82,7 @@ export class SettingsScene extends Phaser.Scene {
     numbers?: Toggle;
     colorblind?: Toggle;
     fullscreen?: Toggle;
+    textSize?: Selector<TextSize>;
     name?: TextField;
   } = {};
 
@@ -71,7 +90,7 @@ export class SettingsScene extends Phaser.Scene {
     super({ key: SCENES.settings });
   }
 
-  init(data: SubScreenData): void {
+  init(data: SettingsData): void {
     this.data_ = data ?? {};
     this.controls = {};
   }
@@ -85,13 +104,15 @@ export class SettingsScene extends Phaser.Scene {
     }
     addHeader(this, "Settings", "Changes save automatically");
 
-    const panelTop = 112;
-    const panelH = 456;
+    const panelTop = 100;
+    const panelH = 516;
     createPanel(this, GAME_W / 2, panelTop, 1104, panelH, { originX: 0.5, originY: 0 });
     const leftX = GAME_W / 2 - 536;
     const rightX = GAME_W / 2 + 32;
     // column separator
-    this.add.rectangle(GAME_W / 2, panelTop + 32, 3, panelH - 120, 0x231f3d).setOrigin(0.5, 0);
+    this.add
+      .rectangle(GAME_W / 2, panelTop + 32, 2, panelH - 128, COLOR_NUM.line, 0.6)
+      .setOrigin(0.5, 0);
 
     const s = getSettings();
     const rows: Array<{ row: Row; hint: string }> = [];
@@ -192,25 +213,38 @@ export class SettingsScene extends Phaser.Scene {
       row: this.controls.fullscreen,
       hint: "Fill the whole screen. Press Esc to leave.",
     });
+    y += ROW_H;
+    const textSizeRow = rows.length;
+    this.controls.textSize = new Selector<TextSize>(this, rightX, y, {
+      label: "Text size",
+      width: COL_W,
+      value: s.textSize,
+      options: TEXT_SIZES.map((v) => ({ value: v, label: TEXT_SIZE_LABEL[v] })),
+      onChange: (v) => this.setTextSize(v, textSizeRow),
+    });
+    rows.push({
+      row: this.controls.textSize,
+      hint: "Larger text across menus and the battlefield.",
+    });
 
     // Hint strip at the bottom of the panel.
-    const hintY = panelTop + panelH - 44;
-    this.add.rectangle(GAME_W / 2, hintY - 20, 1104 - 48, 3, 0x231f3d).setOrigin(0.5, 0);
+    const hintY = panelTop + panelH - 40;
+    this.add.rectangle(GAME_W / 2, hintY - 22, 1104 - 64, 2, COLOR_NUM.line, 0.6).setOrigin(0.5, 0);
     this.hint = this.add
       .text(GAME_W / 2, hintY + 6, "", { ...TEXT.small, color: COLORS.textDim })
       .setOrigin(0.5);
 
     // Footer buttons.
-    const footY = GAME_H - 64;
-    const back = new Button(this, GAME_W / 2 - 128, footY, {
+    const footY = GAME_H - 54;
+    const back = new Button(this, GAME_W / 2 - 136, footY, {
       label: "Back",
       kind: "primary",
-      width: 216,
+      width: 240,
       onClick: () => this.back(),
     });
-    const reset = new Button(this, GAME_W / 2 + 128, footY, {
+    const reset = new Button(this, GAME_W / 2 + 136, footY, {
       label: "Reset defaults",
-      width: 216,
+      width: 240,
       onClick: () => void this.reset(),
     });
     addKeyHint(this, "Esc  back   ·   Left / Right  adjust");
@@ -222,6 +256,7 @@ export class SettingsScene extends Phaser.Scene {
     new FocusGroup(this, items, {
       onBack: () => this.back(),
       onFocus: (item) => this.hint.setText(hints.get(item) ?? ""),
+      initial: Math.min(Math.max(0, this.data_.focus ?? 0), items.length - 1),
     });
 
     const onFs = () => this.controls.fullscreen?.setValue(this.scale.isFullscreen);
@@ -237,12 +272,22 @@ export class SettingsScene extends Phaser.Scene {
     this.add
       .text(x + GRID * 2, y, label.toUpperCase(), {
         ...TEXT.small,
+        fontFamily: DISPLAY_FONT,
         fontStyle: "700",
         color: COLORS.accent,
         letterSpacing: 3,
       })
       .setOrigin(0, 0.5);
-    this.add.rectangle(x + GRID * 2, y + 16, COL_W - GRID * 4, 3, 0x231f3d).setOrigin(0, 0.5);
+    this.add
+      .rectangle(x + GRID * 2, y + 17, COL_W - GRID * 4, 2, COLOR_NUM.line, 0.7)
+      .setOrigin(0, 0.5);
+  }
+
+  /** Text size changes rebuild the screen so every label picks up the new TEXT sizes. */
+  private setTextSize(size: TextSize, rowIndex: number): void {
+    updateSettings({ textSize: size });
+    this.controls.name?.field.blur();
+    this.time.delayedCall(120, () => this.scene.restart({ ...this.data_, focus: rowIndex }));
   }
 
   private toggleFullscreen(): void {
@@ -264,6 +309,7 @@ export class SettingsScene extends Phaser.Scene {
     if (!ok) return;
     const name = getSettings().playerName;
     const server = getSettings().lastServerUrl;
+    const before = getSettings().textSize;
     resetSettings();
     const s: Settings = { ...getSettings(), playerName: name, lastServerUrl: server };
     updateSettings(s);
@@ -275,7 +321,9 @@ export class SettingsScene extends Phaser.Scene {
     c.shake?.setValue(s.screenShake);
     c.numbers?.setValue(s.damageNumbers);
     c.colorblind?.setValue(s.colorblindIntents);
+    c.textSize?.setValue(s.textSize);
     toast(this, "Settings restored to defaults.", "success");
+    if (s.textSize !== before) this.time.delayedCall(150, () => this.scene.restart(this.data_));
   }
 
   private back(): void {

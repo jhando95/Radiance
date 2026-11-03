@@ -13,6 +13,7 @@ import {
   COLOR_NUM,
   COLORS,
   DEPTH,
+  DISPLAY_FONT,
   DURATION,
   GAME_H,
   GAME_W,
@@ -72,7 +73,7 @@ export interface ModalHandle {
 const PAD = GRID * 4;
 
 export function openModal(scene: Phaser.Scene, opts: ModalOptions): ModalHandle {
-  const width = Math.round((opts.width ?? 576) / 3) * 3;
+  const width = Math.round(opts.width ?? 600);
   const inner = width - PAD * 2;
   const buttons = opts.buttons ?? [{ label: "OK", kind: "primary" }];
   const dismissible = opts.dismissible ?? true;
@@ -82,29 +83,26 @@ export function openModal(scene: Phaser.Scene, opts: ModalOptions): ModalHandle 
   const dim = scene.add
     .rectangle(0, 0, GAME_W, GAME_H, COLOR_NUM.ink, 0.72)
     .setOrigin(0)
-    .setScrollFactor(0)
     .setDepth(DEPTH.modal)
     .setInteractive();
-  const root = scene.add
-    .container(0, 0)
-    .setDepth(DEPTH.modal + 1)
-    .setScrollFactor(0);
+  const root = scene.add.container(0, 0).setDepth(DEPTH.modal + 1);
 
-  const title = scene.add.text(PAD, PAD - 4, opts.title, TEXT.heading);
-  const divider = createDivider(scene, PAD, PAD + 40, inner);
-  let y = PAD + 40 + 6 + GRID * 2;
+  const title = scene.add.text(PAD, PAD - 6, opts.title, TEXT.heading);
+  const ruleY = Math.round(PAD - 6 + title.height + 6);
+  const divider = createDivider(scene, PAD, ruleY, inner);
+  let y = ruleY + 4 + GRID * 2;
   const bodyText = scene.add.text(PAD, y, opts.body ?? "", {
     ...TEXT.body,
     color: COLORS.textDim,
     wordWrap: { width: inner },
-    lineSpacing: 6,
+    lineSpacing: 5,
   });
   if (opts.body) y += bodyText.height + GRID * 3;
   const contentTop = y;
   y += opts.contentHeight ?? 0;
   y += GRID;
   const btnTop = y;
-  const height = Math.round((btnTop + 48 + PAD) / 3) * 3;
+  const height = Math.round(btnTop + 48 + PAD);
   const left = Math.round((GAME_W - width) / 2);
   const top = Math.round((GAME_H - height) / 2);
   root.setPosition(left, top);
@@ -354,7 +352,9 @@ export function promptDialog(
           ctx.container.add(
             ctx.scene.add.text(0, fy, f.label.toUpperCase(), {
               ...TEXT.small,
-              fontStyle: "600",
+              fontFamily: DISPLAY_FONT,
+              fontStyle: "700",
+              letterSpacing: 1.5,
               color: COLORS.accent,
             }),
           );

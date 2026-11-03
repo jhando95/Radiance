@@ -7,6 +7,10 @@
 export type AnimationSpeed = 0.5 | 1 | 1.5 | 2;
 export const ANIMATION_SPEEDS: readonly AnimationSpeed[] = [0.5, 1, 1.5, 2];
 
+/** UI text size. "large" scales every TEXT style up (see ui/theme.ts). */
+export type TextSize = "normal" | "large";
+export const TEXT_SIZES: readonly TextSize[] = ["normal", "large"];
+
 export interface Settings {
   /** 0..1 */
   masterVolume: number;
@@ -19,6 +23,7 @@ export interface Settings {
   damageNumbers: boolean;
   /** Use shape/pattern cues (not only color) for enemy intents and elements. */
   colorblindIntents: boolean;
+  textSize: TextSize;
   playerName: string;
   lastServerUrl: string;
 }
@@ -31,6 +36,7 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   screenShake: true,
   damageNumbers: true,
   colorblindIntents: false,
+  textSize: "normal",
   playerName: "",
   lastServerUrl: "",
 });
@@ -63,6 +69,9 @@ function sanitize(raw: Partial<Record<keyof Settings, unknown>>): Settings {
     screenShake: bool(raw.screenShake, d.screenShake),
     damageNumbers: bool(raw.damageNumbers, d.damageNumbers),
     colorblindIntents: bool(raw.colorblindIntents, d.colorblindIntents),
+    textSize: TEXT_SIZES.includes(raw.textSize as TextSize)
+      ? (raw.textSize as TextSize)
+      : d.textSize,
     playerName: str(raw.playerName, d.playerName, PLAYER_NAME_MAX).trim(),
     lastServerUrl: str(raw.lastServerUrl, d.lastServerUrl),
   };

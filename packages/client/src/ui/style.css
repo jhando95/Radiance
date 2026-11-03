@@ -1,14 +1,17 @@
-/* Shell styles: a full-viewport dark stage for the canvas, plus the DOM text inputs. */
+/* Shell styles: a full-viewport dark stage for the canvas, plus the DOM text inputs.
+   Fonts: "Alegreya Sans" (body) and "Cinzel" (display), loaded by main.ts via @fontsource. */
 :root {
   --bg: #07060b;
   --ink: #05040a;
-  --text: #ece4d4;
-  --text-dim: #9c9183;
+  --text: #f3ecdd;
+  --text-dim: #c4b9a6;
+  --text-muted: #9098ad;
   --line: #364561;
   --accent: #f2a93b;
   --accent-bright: #ffd36e;
   --danger: #e78450;
-  --font: "Pixelify Sans", "Courier New", monospace;
+  --font: "Alegreya Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Cinzel", "Times New Roman", Georgia, serif;
   color-scheme: dark;
 }
 
@@ -25,7 +28,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
-  font-variant-ligatures: none;
+  -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
@@ -38,7 +41,8 @@ body {
 
 #game canvas {
   display: block;
-  image-rendering: pixelated;
+  /* The canvas is full-HD art; let the browser filter it smoothly when it is resized. */
+  image-rendering: auto;
   outline: none;
 }
 
@@ -51,54 +55,68 @@ noscript {
 /* Text inputs (Phaser DOM elements). Sizes are in game px; Phaser scales the container.
    Phaser positions these with `transform`, so effects here must not use `transform`. */
 .rad-input {
-  height: 44px;
-  padding: 0 14px;
+  height: 46px;
+  padding: 0 16px;
   font-family: var(--font);
-  font-size: 20px;
-  font-variant-ligatures: none;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   color: var(--text);
   caret-color: var(--accent-bright);
-  background: #0e0c16;
-  border: 3px solid var(--line);
+  background: linear-gradient(180deg, #08070d 0%, #12101d 100%);
+  border: 1.5px solid #3a4560;
+  border-radius: 6px;
   box-shadow:
-    0 0 0 3px var(--ink),
-    inset 0 3px 0 var(--ink);
-  border-radius: 0;
+    inset 0 2px 6px rgba(0, 0, 0, 0.7),
+    0 1px 0 rgba(255, 255, 255, 0.04);
   outline: none;
   user-select: text;
+  -webkit-font-smoothing: antialiased;
   transition:
     border-color 90ms linear,
-    box-shadow 90ms linear;
+    box-shadow 120ms linear;
 }
 
 .rad-input::placeholder {
-  color: #4a4677;
+  color: #6f7890;
+  font-style: italic;
 }
 
 .rad-input:hover,
 .rad-input.rad-input--focus {
-  border-color: #566c8f;
+  border-color: #6a7fa3;
 }
 
 .rad-input:focus {
   border-color: var(--accent);
   box-shadow:
-    0 0 0 3px var(--ink),
-    inset 0 3px 0 var(--ink),
-    0 0 18px rgba(242, 169, 59, 0.25);
+    inset 0 2px 6px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(242, 169, 59, 0.35),
+    0 0 18px rgba(242, 169, 59, 0.28);
 }
 
 .rad-input--invalid,
 .rad-input--invalid:focus {
   border-color: var(--danger);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.7),
+    0 0 14px rgba(231, 132, 80, 0.3);
 }
 
 .rad-input--code {
+  font-family: var(--font-display);
+  font-weight: 700;
   font-size: 28px;
   letter-spacing: 0.4em;
+  text-indent: 0.4em;
   text-transform: uppercase;
   text-align: center;
   color: var(--accent-bright);
+}
+
+.rad-input--code::placeholder {
+  font-style: normal;
+  color: #5d5a78;
 }
 
 .rad-input--shake {

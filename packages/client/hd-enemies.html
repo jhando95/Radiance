@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Radiance – HD enemy gallery</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #0d0b14;
+        color: #c9bfae;
+        font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace;
+      }
+      h1 {
+        color: #f2a93b;
+        font-size: 18px;
+        margin: 0 0 8px;
+      }
+      h2 {
+        color: #ffd36e;
+        font-size: 14px;
+        margin: 24px 0 8px;
+        border-bottom: 1px solid #231f3d;
+        padding-bottom: 4px;
+      }
+      .live {
+        width: 100%;
+        max-width: 1920px;
+        aspect-ratio: 16 / 9;
+        margin-bottom: 8px;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: flex-end;
+      }
+      .cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        background: #110e1b;
+        border: 1px solid #1b1729;
+        padding: 4px;
+      }
+      .cell span {
+        font-size: 10px;
+        color: #9c9183;
+      }
+      #timing {
+        color: #6fd28a;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Radiance — HD enemies</h1>
+    <div id="timing"></div>
+    <div id="live"></div>
+    <section id="stills"></section>
+    <script type="module" src="/src/art/hd/gallery-enemies.ts"></script>
+  </body>
+</html>

@@ -2,7 +2,7 @@
 import * as Phaser from "phaser";
 import { hexNum, RAMPS } from "../art/palette";
 import { Row, type RowOptions } from "./Row";
-import { COLOR_NUM, COLORS, GRID, playUiSound, TEXT } from "./theme";
+import { COLOR_NUM, COLORS, fontPx, GRID, playUiSound, TEXT } from "./theme";
 
 export interface SliderOptions extends RowOptions {
   value: number;
@@ -14,9 +14,9 @@ export interface SliderOptions extends RowOptions {
   onChange?: (v: number) => void;
 }
 
-const TRACK_H = 18;
-const KNOB_W = 12;
-const KNOB_H = 30;
+const TRACK_H = 12;
+const KNOB_W = 14;
+const KNOB_H = 28;
 
 export class Slider extends Row {
   private value: number;
@@ -47,7 +47,7 @@ export class Slider extends Row {
     this.track = scene.add.graphics();
     this.knob = scene.add.graphics();
     this.valueText = scene.add
-      .text(this.rowWidth - GRID * 2, 0, "", { ...TEXT.number, fontSize: "18px" })
+      .text(this.rowWidth - GRID * 2, 0, "", { ...TEXT.number, fontSize: fontPx(19) })
       .setOrigin(1, 0.5);
     const hit = scene.add
       .zone(this.trackX + this.trackW / 2, 0, this.trackW + KNOB_W * 2, KNOB_H + 12)
@@ -112,40 +112,58 @@ export class Slider extends Row {
     const t = (this.value - this.min) / (this.max - this.min);
     const x0 = this.trackX;
     const w = this.trackW;
+    const top = -TRACK_H / 2;
+    const r = TRACK_H / 2;
     const g = this.track;
     g.clear();
-    // frame
-    g.fillStyle(COLOR_NUM.ink, 1);
-    g.fillRect(x0 - 3, -TRACK_H / 2 - 3, w + 6, TRACK_H + 6);
-    g.fillStyle(this.focused ? COLOR_NUM.accentDeep : hexNum(RAMPS.steel[1]), 1);
-    g.fillRect(x0, -TRACK_H / 2, w, TRACK_H);
-    g.fillStyle(COLOR_NUM.bg, 1);
-    g.fillRect(x0 + 3, -TRACK_H / 2 + 3, w - 6, TRACK_H - 6);
-    // fill: lamp ramp, brighter at the top
-    const fw = Math.round((w - 6) * t);
+    // groove: dark well with a thin rim (brighter when focused)
+    g.fillStyle(COLOR_NUM.ink, 0.9);
+    g.fillRoundedRect(x0 - 2, top - 2, w + 4, TRACK_H + 4, r + 2);
+    g.lineStyle(1.5, this.focused ? COLOR_NUM.accentDeep : hexNum(RAMPS.steel[1]), 1);
+    g.strokeRoundedRect(x0 - 2, top - 2, w + 4, TRACK_H + 4, r + 2);
+    // fill: lamp light, bright on top
+    const fw = Math.max(0, Math.round(w * t));
     if (fw > 0) {
+      const fwr = Math.max(fw, TRACK_H);
       g.fillStyle(hexNum(RAMPS.lamp[2]), 1);
-      g.fillRect(x0 + 3, -TRACK_H / 2 + 3, fw, TRACK_H - 6);
+      g.fillRoundedRect(x0, top, fwr, TRACK_H, r);
       g.fillStyle(hexNum(RAMPS.lamp[3]), 1);
-      g.fillRect(x0 + 3, -TRACK_H / 2 + 3, fw, 6);
-      g.fillStyle(hexNum(RAMPS.lamp[4]), 1);
-      g.fillRect(x0 + 3, -TRACK_H / 2 + 3, fw, 3);
+      g.fillRoundedRect(x0 + 1, top + 1, fwr - 2, TRACK_H / 2, {
+        tl: r - 1,
+        tr: r - 1,
+        bl: 0,
+        br: 0,
+      });
+      g.fillStyle(hexNum(RAMPS.lamp[5]), 0.55);
+      g.fillRoundedRect(x0 + 3, top + 2, fwr - 6, 2, 1);
     }
-    // tick marks every 25%
-    g.fillStyle(COLOR_NUM.ink, 0.6);
-    for (let i = 1; i < 4; i++) g.fillRect(x0 + Math.round((w * i) / 4) - 1, 3, 3, 3);
+    // quarter ticks
+    g.fillStyle(COLOR_NUM.ink, 0.55);
+    for (let i = 1; i < 4; i++)
+      g.fillRect(x0 + Math.round((w * i) / 4) - 1, top + 3, 2, TRACK_H - 6);
 
-    const kx = Math.round(x0 + 3 + fw - KNOB_W / 2);
+    const kx = Math.round(x0 + fw - KNOB_W / 2);
     const k = this.knob;
     k.clear();
+    if (this.focused) {
+      k.fillStyle(COLOR_NUM.accent, 0.25);
+      k.fillRoundedRect(kx - 5, -KNOB_H / 2 - 5, KNOB_W + 10, KNOB_H + 10, 9);
+    }
     k.fillStyle(COLOR_NUM.ink, 1);
-    k.fillRect(kx - 3, -KNOB_H / 2 - 3, KNOB_W + 6, KNOB_H + 6);
-    k.fillStyle(this.focused ? hexNum(RAMPS.lamp[4]) : hexNum(RAMPS.steel[4]), 1);
-    k.fillRect(kx, -KNOB_H / 2, KNOB_W, KNOB_H);
-    k.fillStyle(this.focused ? hexNum(RAMPS.lamp[5]) : hexNum(RAMPS.steel[5]), 1);
-    k.fillRect(kx, -KNOB_H / 2, KNOB_W, 3);
-    k.fillStyle(this.focused ? hexNum(RAMPS.lamp[2]) : hexNum(RAMPS.steel[2]), 1);
-    k.fillRect(kx, KNOB_H / 2 - 3, KNOB_W, 3);
+    k.fillRoundedRect(kx - 2, -KNOB_H / 2 - 2, KNOB_W + 4, KNOB_H + 4, 6);
+    const top1 = this.focused ? hexNum(RAMPS.lamp[5]) : hexNum(RAMPS.steel[5]);
+    const bot1 = this.focused ? hexNum(RAMPS.lamp[3]) : hexNum(RAMPS.steel[3]);
+    k.fillStyle(bot1, 1);
+    k.fillRoundedRect(kx, -KNOB_H / 2, KNOB_W, KNOB_H, 4);
+    k.fillStyle(top1, 1);
+    k.fillRoundedRect(kx + 1, -KNOB_H / 2 + 1, KNOB_W - 2, KNOB_H / 2, {
+      tl: 3,
+      tr: 3,
+      bl: 0,
+      br: 0,
+    });
+    k.fillStyle(COLOR_NUM.ink, 0.35);
+    k.fillRect(kx + KNOB_W / 2 - 1, -6, 2, 12);
 
     this.valueText.setText(this.format(this.value));
     this.valueText.setColor(this.focused ? COLORS.accentPale : COLORS.accentBright);

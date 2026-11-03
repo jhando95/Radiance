@@ -31,19 +31,21 @@ export abstract class Row extends Phaser.GameObjects.Container implements Focusa
     const w = this.rowWidth;
     const h = this.rowHeight;
 
+    // Focus band: warm light pooling from the left edge, with a lamp-colored marker.
     this.highlight = scene.add.graphics();
-    this.highlight.fillStyle(COLOR_NUM.accent, 0.1);
+    const a = COLOR_NUM.accent;
+    this.highlight.fillGradientStyle(a, a, a, a, 0.2, 0.03, 0.2, 0.03);
     this.highlight.fillRect(0, -h / 2, w, h);
-    this.highlight.fillStyle(COLOR_NUM.accent, 1);
-    this.highlight.fillRect(0, -h / 2, 3, h);
+    this.highlight.fillStyle(COLOR_NUM.accentBright, 1);
+    this.highlight.fillRect(0, -h / 2 + 4, 3, h - 8);
     this.highlight.setAlpha(0);
 
     this.labelText = scene.add
-      .text(GRID * 2, opts.description ? -9 : 0, opts.label, TEXT.body)
+      .text(GRID * 2, opts.description ? -10 : 0, opts.label, TEXT.body)
       .setOrigin(0, 0.5);
     this.add([this.highlight, this.labelText]);
     if (opts.description) {
-      this.add(scene.add.text(GRID * 2, 13, opts.description, TEXT.tiny).setOrigin(0, 0.5));
+      this.add(scene.add.text(GRID * 2, 14, opts.description, TEXT.tiny).setOrigin(0, 0.5));
     }
 
     // Hover anywhere on the row to focus it.

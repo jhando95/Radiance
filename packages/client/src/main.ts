@@ -1,10 +1,8 @@
 /**
- * Client entry: loads the pixel font and base styles, creates the Phaser game and registers
- * the shell scenes plus every gameplay scene pushed into `gameplayScenes`.
+ * Client entry: loads the UI fonts (Cinzel for display, Alegreya Sans for body; BootScene waits
+ * for them) and base styles, creates the Phaser game and registers the shell scenes plus every
+ * gameplay scene pushed into `gameplayScenes`.
  */
-import "@fontsource/pixelify-sans/400.css";
-import "@fontsource/pixelify-sans/600.css";
-import "@fontsource/pixelify-sans/700.css";
 import "@fontsource/cinzel/600.css";
 import "@fontsource/cinzel/700.css";
 import "@fontsource/cinzel/900.css";
@@ -26,10 +24,8 @@ import { SettingsScene } from "./scenes/SettingsScene";
 import { TitleScene } from "./scenes/TitleScene";
 import { UiOverlayScene } from "./scenes/UiOverlayScene";
 import "./scenes/gameplay";
-import { COLORS, installLigatureFix } from "./ui/theme";
+import { COLORS } from "./ui/theme";
 
-// Before any scene creates text: suppress Pixelify Sans fi/fl/ff ligatures everywhere.
-installLigatureFix(Phaser.GameObjects.Text);
 // Every text object rasterizes at high resolution.
 installCrispText(Phaser.GameObjects.Text);
 
@@ -43,6 +39,8 @@ const game = new Phaser.Game({
   // Smooth filtering for HD art; remaining pixel-art textures opt into NEAREST.
   pixelArt: false,
   antialias: true,
+  // Mipmaps for power-of-two textures (HD icons are 128px) so they stay clean when shown small.
+  mipmapFilter: "LINEAR_MIPMAP_LINEAR",
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   dom: { createContainer: true },
   input: { activePointers: 2 },

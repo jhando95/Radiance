@@ -12,7 +12,7 @@ export interface ToggleOptions extends RowOptions {
   offLabel?: string;
 }
 
-const SW_W = 72;
+const SW_W = 64;
 const SW_H = 30;
 
 export class Toggle extends Row {
@@ -35,7 +35,7 @@ export class Toggle extends Row {
     this.sw = scene.add.graphics();
     this.knob = scene.add.graphics();
     this.stateText = scene.add
-      .text(this.swX - GRID * 2, 0, "", { ...TEXT.small, fontStyle: "600" })
+      .text(this.swX - GRID * 2, 0, "", { ...TEXT.small, fontStyle: "800", letterSpacing: 1 })
       .setOrigin(1, 0.5);
     this.add([this.sw, this.knob, this.stateText]);
     this.redraw(false);
@@ -75,33 +75,35 @@ export class Toggle extends Row {
   private redraw(animate: boolean): void {
     const on = this.value;
     const x = this.swX;
+    const r = SW_H / 2;
     const g = this.sw;
     g.clear();
-    g.fillStyle(COLOR_NUM.ink, 1);
-    g.fillRect(x - 3, -SW_H / 2 - 3, SW_W + 6, SW_H + 6);
-    g.fillStyle(
-      on ? hexNum(RAMPS.lamp[2]) : this.focused ? hexNum(RAMPS.steel[2]) : hexNum(RAMPS.steel[1]),
-      1,
-    );
-    g.fillRect(x, -SW_H / 2, SW_W, SW_H);
-    g.fillStyle(on ? hexNum(RAMPS.lamp[1]) : COLOR_NUM.bg, 1);
-    g.fillRect(x + 3, -SW_H / 2 + 3, SW_W - 6, SW_H - 6);
-    if (on) {
-      // warm inner glow
-      g.fillStyle(hexNum(RAMPS.lamp[2]), 0.6);
-      g.fillRect(x + 3, -SW_H / 2 + 3, SW_W - 6, 3);
+    if (this.focused) {
+      g.fillStyle(COLOR_NUM.accent, 0.18);
+      g.fillRoundedRect(x - 6, -SW_H / 2 - 6, SW_W + 12, SW_H + 12, r + 6);
     }
+    g.fillStyle(COLOR_NUM.ink, 1);
+    g.fillRoundedRect(x - 2, -SW_H / 2 - 2, SW_W + 4, SW_H + 4, r + 2);
+    g.fillStyle(on ? hexNum(RAMPS.lamp[2]) : hexNum(RAMPS.void[2]), 1);
+    g.fillRoundedRect(x, -SW_H / 2, SW_W, SW_H, r);
+    // inner shade on the lower half
+    g.fillStyle(on ? hexNum(RAMPS.lamp[1]) : COLOR_NUM.ink, on ? 0.7 : 0.5);
+    g.fillRoundedRect(x + 2, 0, SW_W - 4, SW_H / 2 - 2, { tl: 0, tr: 0, bl: r - 2, br: r - 2 });
+    g.lineStyle(1.5, on ? hexNum(RAMPS.lamp[4]) : hexNum(RAMPS.steel[this.focused ? 3 : 2]), 1);
+    g.strokeRoundedRect(x, -SW_H / 2, SW_W, SW_H, r);
 
-    const kw = SW_W / 2 - 6;
-    const kxTarget = on ? x + SW_W / 2 + 3 : x + 3;
+    const kr = r - 4;
+    const kxTarget = on ? x + SW_W - 4 - kr : x + 4 + kr;
     const k = this.knob;
     k.clear();
-    k.fillStyle(on ? hexNum(RAMPS.lamp[4]) : hexNum(RAMPS.steel[3]), 1);
-    k.fillRect(0, -SW_H / 2 + 3, kw, SW_H - 6);
-    k.fillStyle(on ? hexNum(RAMPS.lamp[5]) : hexNum(RAMPS.steel[4]), 1);
-    k.fillRect(0, -SW_H / 2 + 3, kw, 3);
-    k.fillStyle(on ? hexNum(RAMPS.lamp[2]) : hexNum(RAMPS.steel[2]), 1);
-    k.fillRect(0, SW_H / 2 - 6, kw, 3);
+    k.fillStyle(COLOR_NUM.ink, 0.6);
+    k.fillCircle(0, 2, kr + 1);
+    const top = on ? hexNum(RAMPS.lamp[5]) : hexNum(RAMPS.steel[5]);
+    const bot = on ? hexNum(RAMPS.lamp[4]) : hexNum(RAMPS.steel[3]);
+    k.fillStyle(bot, 1);
+    k.fillCircle(0, 0, kr);
+    k.fillStyle(top, 1);
+    k.fillCircle(0, -2, kr - 3);
     this.scene.tweens.killTweensOf(k);
     if (animate) {
       this.scene.tweens.add({ targets: k, x: kxTarget, duration: DURATION.fast, ease: "Quad.out" });

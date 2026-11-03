@@ -1,11 +1,11 @@
 /**
- * Atmospheric text menu (title screen, pause): items are plain pixel text that light up
- * amber when focused, with a flickering lamp marker and a soft glow bar behind them.
+ * Atmospheric text menu (title screen, pause): items are engraved Cinzel capitals that light
+ * up amber when focused, with flickering lamp markers and a soft glow bar behind them.
  */
 import * as Phaser from "phaser";
 import { iconTexture, TEX } from "../app/textures";
 import { FOCUS_REQUEST, type Focusable, FocusGroup } from "./focus";
-import { COLOR_NUM, COLORS, DURATION, playUiSound, TEXT } from "./theme";
+import { COLOR_NUM, COLORS, DURATION, fontPx, playUiSound, TEXT } from "./theme";
 
 export interface MenuEntry {
   label: string;
@@ -24,6 +24,9 @@ export interface MenuListOptions {
   onBack?: () => void;
   fontSize?: number;
 }
+
+/** Unfocused items: bright enough to read over art, still a step below the lit item. */
+const IDLE_COLOR = "#ddd2bd";
 
 export class MenuItem extends Phaser.GameObjects.Container implements Focusable {
   private readonly text: Phaser.GameObjects.Text;
@@ -49,19 +52,24 @@ export class MenuItem extends Phaser.GameObjects.Container implements Focusable 
       .setTint(COLOR_NUM.accent)
       .setAlpha(0)
       .setBlendMode(Phaser.BlendModes.ADD);
+    const size = fontPx(fontSize, 0.5);
     this.text = scene.add
-      .text(0, 0, entry.label, { ...TEXT.subheading, fontSize: `${fontSize}px` })
+      .text(0, 0, entry.label, {
+        ...TEXT.subheading,
+        fontSize: size,
+        letterSpacing: Math.round(Number.parseInt(size, 10) * 0.06),
+      })
       .setOrigin(0.5);
     this.note = entry.note
       ? scene.add.text(0, 0, entry.note, TEXT.tiny).setOrigin(0, 0.5).setAlpha(0.8)
       : null;
     const lamp = iconTexture(scene, "ui_lamp");
-    const half = this.text.width / 2 + 28;
-    this.lampL = scene.add.image(-half, 0, lamp).setScale(2).setAlpha(0);
-    this.lampR = scene.add.image(half, 0, lamp).setScale(2).setAlpha(0).setFlipX(true);
+    const half = this.text.width / 2 + 30;
+    this.lampL = scene.add.image(-half, 0, lamp).setDisplaySize(30, 30).setAlpha(0);
+    this.lampR = scene.add.image(half, 0, lamp).setDisplaySize(30, 30).setAlpha(0).setFlipX(true);
     this.add([this.glow, this.text, this.lampL, this.lampR]);
     if (this.note) {
-      this.note.setPosition(this.text.width / 2 + 56, 2);
+      this.note.setPosition(this.text.width / 2 + 56, 1);
       this.add(this.note);
     }
     this.setSize(Math.max(width * 0.8, this.text.width + 80), fontSize + 20);
@@ -100,7 +108,7 @@ export class MenuItem extends Phaser.GameObjects.Container implements Focusable 
   private refresh(): void {
     const on = this.focused && !this.entry.disabled;
     this.text.setColor(
-      this.entry.disabled ? COLORS.textMuted : on ? COLORS.accentBright : COLORS.textDim,
+      this.entry.disabled ? COLORS.textMuted : on ? COLORS.accentBright : IDLE_COLOR,
     );
     this.scene.tweens.killTweensOf([this.glow, this.lampL, this.lampR]);
     this.scene.tweens.add({
@@ -149,7 +157,7 @@ export function createMenuList(
   const width = opts.width ?? 360;
   const container = scene.add.container(x, y);
   const items = entries.map((e, i) => {
-    const it = new MenuItem(scene, 0, i * spacing, e, width, opts.fontSize ?? 24);
+    const it = new MenuItem(scene, 0, i * spacing, e, width, opts.fontSize ?? 26);
     container.add(it);
     return it;
   });

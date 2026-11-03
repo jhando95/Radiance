@@ -14,7 +14,7 @@
  */
 import { RAMPS } from "../../palette";
 import { canvas, ctx2d, INK_COLOR, inkStroke, type PathFn, type Pt, withAlpha } from "../ink";
-import type { RigPart } from "../rig";
+import type { RigGlow, RigPart } from "../rig";
 
 export { INK_COLOR };
 
@@ -23,7 +23,7 @@ export const LIGHT_ANGLE = -0.95;
 const LX = Math.cos(LIGHT_ANGLE);
 const LY = Math.sin(LIGHT_ANGLE);
 
-export const COLD_RIM = RAMPS.umbra[4];
+export const COLD_RIM = "#8e7fc6";
 export const WARM_RIM = RAMPS.lamp[3];
 
 export type Box = { x: number; y: number; w: number; h: number };
@@ -269,17 +269,17 @@ export function cshape(ctx: CanvasRenderingContext2D, s: Shp, st: CStyle): void 
 
   const rimBack = st.rimBack === undefined ? COLD_RIM : st.rimBack;
   if (rimBack) {
-    const rw = st.rimBackW ?? Math.max(2, Math.min(5, w * 0.05));
+    const rw = st.rimBackW ?? Math.max(1.5, Math.min(3.2, w * 0.04));
     ctx.save();
-    ctx.globalAlpha = 0.85;
+    ctx.globalAlpha = 0.7;
     band(rimBack, rw, 0.94, 0.34);
     ctx.restore();
   }
   const rimFront = st.rimFront === undefined ? WARM_RIM : st.rimFront;
   if (rimFront) {
-    const rw = st.rimFrontW ?? Math.max(1.5, Math.min(3, w * 0.03));
+    const rw = st.rimFrontW ?? Math.max(1.2, Math.min(2.5, w * 0.025));
     ctx.save();
-    ctx.globalAlpha = 0.6;
+    ctx.globalAlpha = 0.5;
     band(rimFront, rw, -0.97, 0.24);
     ctx.restore();
   }
@@ -629,19 +629,44 @@ export interface PartSpec {
   draw: (ctx: CanvasRenderingContext2D) => void;
 }
 
-export function assemble(specs: readonly PartSpec[]): RigPart[] {
+/** Build part canvases. `k` uniformly scales the whole creature (drawing, joints, boxes). */
+export function assemble(specs: readonly PartSpec[], k = 1): RigPart[] {
   const pivots = new Map<string, Pt>();
-  for (const s of specs) pivots.set(s.id, [-s.box[0], -s.box[1]]);
+  for (const s of specs) pivots.set(s.id, [-s.box[0] * k, -s.box[1] * k]);
   return specs.map((s) => {
-    const [x0, y0, x1, y1] = s.box;
+    const [x0, y0, x1, y1] = s.box.map((v) => v * k) as [number, number, number, number];
     const c = canvas(x1 - x0, y1 - y0);
     const ctx = ctx2d(c);
     ctx.translate(-x0, -y0);
+    ctx.scale(k, k);
     s.draw(ctx);
     const parent = s.parent ?? null;
     const pp = parent ? pivots.get(parent) : undefined;
-    const at: Pt = pp ? [pp[0] + s.at[0], pp[1] + s.at[1]] : s.at;
+    const at: Pt = pp ? [pp[0] + s.at[0] * k, pp[1] + s.at[1] * k] : [s.at[0] * k, s.at[1] * k];
     return { id: s.id, canvas: c, pivot: [-x0, -y0] as const, parent, at, z: s.z };
+  });
+}
+
+/** A glow given in a part's LOCAL (pivot-relative) coordinates. */
+export interface LocalGlow {
+  part: string;
+  x: number;
+  y: number;
+  radius: number;
+  color: string;
+  alpha?: number;
+}
+
+/** Convert pivot-relative glows to RigGlow (part canvas px). */
+export function rigGlows(specs: readonly PartSpec[], glows: readonly LocalGlow[], k = 1): RigGlow[] {
+  return glows.map((g) => {
+    const s = specs.find((p) => p.id === g.part);
+    return {
+      ...g,
+      x: (g.x - (s?.box[0] ?? 0)) * k,
+      y: (g.y - (s?.box[1] ?? 0)) * k,
+      radius: g.radius * k,
+    };
   });
 }
 
@@ -671,4 +696,49 @@ export function shadowPart(rx: number, ry: number, alpha = 0.55, cx = 0): PartSp
 /** Point along a polyline at fraction t (0..1) of its vertex count. */
 export function lerpPt(a: Pt, b: Pt, t: number): Pt {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+}
+
+/** Downward grime/rust drips (clip to a shape via CStyle.detail). */
+export function streaks(
+  ctx: CanvasRenderingContext2D,
+  seed: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  n: number,
+  color: string,
+  alpha = 0.4,
+  width = 2.2,
+): void {
+  const r = rng(seed);
+  for (let i = 0; i < n; i++) {
+    const sx = x + r() * w;
+    const sy = y + r() * h * 0.6;
+    const len = h * (0.15 + r() * 0.4);
+    line(ctx, [[sx, sy], [sx + (r() - 0.5) * 3, sy + len * 0.5], [sx + (r() - 0.5) * 4, sy + len]], width * (0.6 + r() * 0.8), color, [0.1, 0.9], alpha);
+  }
+}
+
+/** Scuffs: short dark nicks and a few pale scratches (worn metal/chitin). */
+export function scuffs(
+  ctx: CanvasRenderingContext2D,
+  seed: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  n: number,
+  pale = "#c9c3cf",
+): void {
+  const r = rng(seed);
+  for (let i = 0; i < n; i++) {
+    const sx = x + r() * w;
+    const sy = y + r() * h;
+    const a = r() * Math.PI;
+    const l = 3 + r() * 8;
+    const pts: Pt[] = [[sx, sy], [sx + Math.cos(a) * l, sy + Math.sin(a) * l]];
+    if (r() < 0.6) line(ctx, pts, 1.6, INK_COLOR, [0.3, 0.3], 0.7);
+    else line(ctx, pts, 1.2, pale, [0.3, 0.3], 0.45);
+  }
 }
